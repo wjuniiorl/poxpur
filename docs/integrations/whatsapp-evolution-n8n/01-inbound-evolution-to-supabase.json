@@ -1,0 +1,143 @@
+{
+  "name": "Poxpur — Inbound (Evolution → Supabase)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "poxpur-whatsapp-inbound",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0001-0001-0001-000000000001",
+      "name": "Webhook Evolution",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "poxpur-whatsapp-inbound",
+      "notes": "Cole esta URL (Production) no Evolution → Settings → Webhook → Events: messages.upsert"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "is-message-upsert",
+              "leftValue": "={{ $json.body.event }}",
+              "rightValue": "messages.upsert",
+              "operator": { "type": "string", "operation": "equals" }
+            },
+            {
+              "id": "is-not-from-me",
+              "leftValue": "={{ $json.body.data.key.fromMe }}",
+              "rightValue": false,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-0001-0001-0001-000000000002",
+      "name": "Só mensagens recebidas",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [440, 300],
+      "notes": "Filtra: só processa event=messages.upsert e fromMe=false (mensagens vindas do cliente, não do próprio bot)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extrai dados da payload Evolution v2\nconst body = $input.first().json.body;\nconst data = body.data || body;\n\n// Telefone do cliente (Evolution manda como 5511999999999@s.whatsapp.net)\nconst remoteJid = data.key?.remoteJid || '';\nconst rawPhone = remoteJid.split('@')[0];\n\n// Nome do cliente (pushName se disponível)\nconst fromName = data.pushName || null;\n\n// Tipo de mensagem e conteúdo\nlet text = '';\nlet type = 'texto';\nlet anexoUrl = null;\n\nconst msg = data.message || {};\nif (msg.conversation) {\n  text = msg.conversation;\n  type = 'texto';\n} else if (msg.extendedTextMessage?.text) {\n  text = msg.extendedTextMessage.text;\n  type = 'texto';\n} else if (msg.imageMessage) {\n  text = msg.imageMessage.caption || '[imagem]';\n  type = 'imagem';\n  anexoUrl = msg.imageMessage.url || null;\n} else if (msg.audioMessage) {\n  text = '[áudio]';\n  type = 'audio';\n  anexoUrl = msg.audioMessage.url || null;\n} else if (msg.documentMessage) {\n  text = msg.documentMessage.fileName || '[documento]';\n  type = 'documento';\n  anexoUrl = msg.documentMessage.url || null;\n} else if (msg.locationMessage) {\n  const lat = msg.locationMessage.degreesLatitude;\n  const lng = msg.locationMessage.degreesLongitude;\n  text = `[localização: ${lat}, ${lng}]`;\n  type = 'localizacao';\n} else {\n  text = '[mensagem não suportada]';\n}\n\nreturn [{\n  json: {\n    fromPhone: '+' + rawPhone,\n    fromName,\n    text,\n    type,\n    anexoUrl,\n    whatsappMessageId: data.key?.id || null,\n    metadata: { source: 'evolution-n8n', instance: body.instance || null }\n  }\n}];"
+      },
+      "id": "a1b2c3d4-0001-0001-0001-000000000003",
+      "name": "Normalizar payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 220],
+      "notes": "Converte payload Evolution v2 para o formato esperado pela Edge Function"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/functions/v1/whatsapp-inbound",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "a1b2c3d4-0001-0001-0001-000000000004",
+      "name": "Chamar Edge Function",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [920, 220],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_WITH_CREDENTIAL_ID",
+          "name": "Supabase Service Role"
+        }
+      },
+      "notes": "Credential HTTP Header Auth: name='apikey' + 'Authorization', value='Bearer <SUPABASE_SERVICE_ROLE_KEY>'. Crie em n8n → Credentials."
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"received\": true, \"messageId\": $json.messageId, \"conversationId\": $json.conversationId}"
+      },
+      "id": "a1b2c3d4-0001-0001-0001-000000000005",
+      "name": "Responder OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1160, 220]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseCode": 200,
+        "responseBody": "={\"ignored\": true, \"reason\": \"event not messages.upsert or fromMe=true\"}"
+      },
+      "id": "a1b2c3d4-0001-0001-0001-000000000006",
+      "name": "Ignorar (não é mensagem do cliente)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [680, 420]
+    }
+  ],
+  "connections": {
+    "Webhook Evolution": {
+      "main": [[{ "node": "Só mensagens recebidas", "type": "main", "index": 0 }]]
+    },
+    "Só mensagens recebidas": {
+      "main": [
+        [{ "node": "Normalizar payload", "type": "main", "index": 0 }],
+        [{ "node": "Ignorar (não é mensagem do cliente)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Normalizar payload": {
+      "main": [[{ "node": "Chamar Edge Function", "type": "main", "index": 0 }]]
+    },
+    "Chamar Edge Function": {
+      "main": [[{ "node": "Responder OK", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "v1",
+  "meta": {
+    "instanceId": "poxpur-sales-hub"
+  },
+  "tags": [{ "name": "poxpur" }, { "name": "whatsapp" }]
+}
