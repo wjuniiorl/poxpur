@@ -193,6 +193,96 @@ export type Database = {
         Update: Partial<Database['poxpur']['Tables']['order_items']['Insert']>;
         Relationships: [];
       };
+      tasks: {
+        Row: {
+          id: string;
+          titulo: string;
+          descricao: string | null;
+          status: 'a_fazer' | 'em_andamento' | 'concluido' | 'cancelado';
+          prioridade: 'baixa' | 'media' | 'alta' | 'urgente';
+          assigned_to: string | null;
+          criado_por: string;
+          prazo: string | null;
+          vinculo_order_id: string | null;
+          vinculo_customer_id: string | null;
+          concluido_em: string | null;
+          criado_em: string;
+          atualizado_em: string;
+        };
+        Insert: {
+          id?: string;
+          titulo: string;
+          descricao?: string | null;
+          status?: Database['poxpur']['Tables']['tasks']['Row']['status'];
+          prioridade?: Database['poxpur']['Tables']['tasks']['Row']['prioridade'];
+          assigned_to?: string | null;
+          criado_por: string;
+          prazo?: string | null;
+          vinculo_order_id?: string | null;
+          vinculo_customer_id?: string | null;
+          concluido_em?: string | null;
+          criado_em?: string;
+          atualizado_em?: string;
+        };
+        Update: Partial<Database['poxpur']['Tables']['tasks']['Insert']>;
+        Relationships: [];
+      };
+      internal_channels: {
+        Row: {
+          id: string;
+          nome: string | null;
+          tipo: 'publico' | 'dm';
+          criado_por: string;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          nome?: string | null;
+          tipo?: 'publico' | 'dm';
+          criado_por: string;
+          criado_em?: string;
+        };
+        Update: Partial<Database['poxpur']['Tables']['internal_channels']['Insert']>;
+        Relationships: [];
+      };
+      internal_channel_members: {
+        Row: {
+          channel_id: string;
+          user_id: string;
+          joined_at: string;
+        };
+        Insert: {
+          channel_id: string;
+          user_id: string;
+          joined_at?: string;
+        };
+        Update: Partial<Database['poxpur']['Tables']['internal_channel_members']['Insert']>;
+        Relationships: [];
+      };
+      internal_messages: {
+        Row: {
+          id: string;
+          channel_id: string;
+          sender_id: string;
+          conteudo: string;
+          mencoes: string[];
+          anexo_url: string | null;
+          metadata: Record<string, unknown> | null;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          channel_id: string;
+          sender_id: string;
+          conteudo: string;
+          mencoes?: string[];
+          anexo_url?: string | null;
+          metadata?: Record<string, unknown> | null;
+          criado_em?: string;
+        };
+        Update: Partial<Database['poxpur']['Tables']['internal_messages']['Insert']>;
+        Relationships: [];
+      };
       conversations: {
         Row: {
           id: string;
@@ -313,6 +403,9 @@ export type Database = {
         | 'pedido_aguardando_fabrica'
         | 'pedido_enviado'
         | 'pedido_concluido';
+      task_status: 'a_fazer' | 'em_andamento' | 'concluido' | 'cancelado';
+      task_priority: 'baixa' | 'media' | 'alta' | 'urgente';
+      channel_type: 'publico' | 'dm';
       conversation_channel: 'whatsapp' | 'manual';
       conversation_status: 'aberta' | 'arquivada';
       message_sender_type: 'cliente' | 'vendedor' | 'sistema';
@@ -349,6 +442,35 @@ export type ConversationChannel = Database['poxpur']['Enums']['conversation_chan
 export type ConversationStatus = Database['poxpur']['Enums']['conversation_status'];
 export type MessageSenderType = Database['poxpur']['Enums']['message_sender_type'];
 export type MessageType = Database['poxpur']['Enums']['message_type'];
+
+export type PoxpurTask = Database['poxpur']['Tables']['tasks']['Row'];
+export type PoxpurTaskInsert = Database['poxpur']['Tables']['tasks']['Insert'];
+export type PoxpurInternalChannel = Database['poxpur']['Tables']['internal_channels']['Row'];
+export type PoxpurInternalChannelInsert = Database['poxpur']['Tables']['internal_channels']['Insert'];
+export type PoxpurInternalMessage = Database['poxpur']['Tables']['internal_messages']['Row'];
+export type PoxpurInternalMessageInsert = Database['poxpur']['Tables']['internal_messages']['Insert'];
+export type TaskStatus = Database['poxpur']['Enums']['task_status'];
+export type TaskPriority = Database['poxpur']['Enums']['task_priority'];
+export type ChannelType = Database['poxpur']['Enums']['channel_type'];
+
+export type TaskWithRelations = PoxpurTask & {
+  assignee: Pick<PoxpurProfile, 'id' | 'nome' | 'role'> | null;
+  creator: Pick<PoxpurProfile, 'id' | 'nome'> | null;
+};
+
+export const TASK_STATUS_LABELS: Record<TaskStatus, { label: string; color: string }> = {
+  a_fazer: { label: 'A fazer', color: 'bg-zinc-200 text-zinc-700' },
+  em_andamento: { label: 'Em andamento', color: 'bg-blue-100 text-blue-700' },
+  concluido: { label: 'Concluído', color: 'bg-emerald-100 text-emerald-700' },
+  cancelado: { label: 'Cancelado', color: 'bg-rose-100 text-rose-700' },
+};
+
+export const TASK_PRIORITY_LABELS: Record<TaskPriority, { label: string; color: string }> = {
+  baixa: { label: 'Baixa', color: 'bg-zinc-100 text-zinc-600' },
+  media: { label: 'Média', color: 'bg-blue-100 text-blue-700' },
+  alta: { label: 'Alta', color: 'bg-amber-100 text-amber-800' },
+  urgente: { label: 'Urgente', color: 'bg-rose-100 text-rose-700' },
+};
 
 export type ConversationWithRelations = PoxpurConversation & {
   customer: Pick<PoxpurCustomer, 'id' | 'nome' | 'telefone' | 'email' | 'cidade' | 'estado' | 'tags' | 'observacoes'> | null;
