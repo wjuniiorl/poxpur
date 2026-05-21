@@ -9,7 +9,8 @@
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\" \"*.{ts,tsx,json}\"",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit -p tsconfig.app.json"
+    "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "supabase:types": "supabase gen types typescript --project-id wpbuufsswgxutzzzxivp --schema poxpur > src/types/database.ts"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.8",
