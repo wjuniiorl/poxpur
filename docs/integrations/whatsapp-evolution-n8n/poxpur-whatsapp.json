@@ -1,0 +1,620 @@
+{
+  "name": "Poxpur — WhatsApp + Email (consolidated)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "poxpur-inbound",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [-2400, 0],
+      "id": "poxpur-w-001",
+      "name": "Webhook Inbound (Evolution)",
+      "webhookId": "poxpur-inbound",
+      "notes": "Cole esta Production URL no Evolution webhook → events: messages.upsert + messages.reaction.upsert"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extrai dados do payload Evolution: texto, mídia, reações\nconst body = $input.first().json.body || $input.first().json;\nconst data = body?.data || body;\nconst key = data?.key || {};\nconst remoteJid = key.remoteJid || data?.remoteJid || '';\nconst telefone = remoteJid.replace('@s.whatsapp.net', '').replace('@g.us', '');\nconst messageObj = data?.message || {};\nconst pushName = data?.pushName || body?.pushName || '';\nconst fromMe = key.fromMe || false;\nconst messageId = key.id || data?.key?.id || '';\n\n// === REACTION ===\nlet isReaction = false, reactionEmoji = null, reactedMessageId = null;\nif (messageObj.reactionMessage) {\n  isReaction = true;\n  reactionEmoji = messageObj.reactionMessage.text || '';\n  reactedMessageId = messageObj.reactionMessage.key?.id || null;\n}\n\n// === TEXT ===\nlet text = messageObj.conversation\n  || messageObj.extendedTextMessage?.text\n  || messageObj.buttonsResponseMessage?.selectedDisplayText\n  || messageObj.listResponseMessage?.title\n  || '';\n\n// === MEDIA ===\nlet mediaType = null, mediaUrl = null, mediaMime = null, mediaFilename = null;\nlet type = 'texto';\n\nif (messageObj.imageMessage) {\n  type = 'imagem'; mediaType = 'image';\n  mediaUrl = messageObj.imageMessage.url || data?.media?.url || '';\n  mediaMime = messageObj.imageMessage.mimetype || '';\n  text = text || messageObj.imageMessage.caption || '[imagem]';\n} else if (messageObj.videoMessage) {\n  type = 'documento'; mediaType = 'video';\n  mediaUrl = messageObj.videoMessage.url || data?.media?.url || '';\n  mediaMime = messageObj.videoMessage.mimetype || '';\n  text = text || messageObj.videoMessage.caption || '[vídeo]';\n} else if (messageObj.audioMessage) {\n  type = 'audio'; mediaType = 'audio';\n  mediaUrl = messageObj.audioMessage.url || data?.media?.url || '';\n  mediaMime = messageObj.audioMessage.mimetype || '';\n  text = text || '[áudio]';\n} else if (messageObj.documentMessage) {\n  type = 'documento'; mediaType = 'document';\n  mediaUrl = messageObj.documentMessage.url || data?.media?.url || '';\n  mediaMime = messageObj.documentMessage.mimetype || '';\n  mediaFilename = messageObj.documentMessage.fileName || '';\n  text = text || messageObj.documentMessage.caption || '[documento]';\n} else if (messageObj.locationMessage) {\n  type = 'localizacao';\n  const lat = messageObj.locationMessage.degreesLatitude, lng = messageObj.locationMessage.degreesLongitude;\n  text = `[localização: ${lat}, ${lng}]`;\n}\n\nif (!mediaUrl && data?.media?.url) mediaUrl = data.media.url;\n\nconst hasData = !isReaction && !fromMe && !!(telefone && (text || mediaUrl));\n\nreturn [{ json: {\n  telefone: '+' + telefone,\n  text, type, pushName,\n  fromMe,\n  hasData,\n  isReaction, reactionEmoji, reactedMessageId,\n  whatsappMessageId: messageId,\n  mediaType, mediaUrl, mediaMime, mediaFilename\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-2160, 0],
+      "id": "poxpur-w-002",
+      "name": "Extrair Dados"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false, "typeValidation": "loose" },
+          "conditions": [
+            {
+              "id": "is-reaction",
+              "leftValue": "={{ String($json.isReaction) }}",
+              "rightValue": "true",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [-1936, 0],
+      "id": "poxpur-w-003",
+      "name": "É reação?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/functions/v1/whatsapp-inbound",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ kind: 'reaction', reactedMessageId: $json.reactedMessageId, emoji: $json.reactionEmoji, fromPhone: $json.telefone }) }}",
+        "options": { "timeout": 10000 }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-1696, -128],
+      "id": "poxpur-w-004",
+      "name": "Edge: Reação",
+      "credentials": {
+        "httpHeaderAuth": { "id": "REPLACE_WITH_CREDENTIAL_ID", "name": "Supabase Service Role" }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false, "typeValidation": "loose" },
+          "conditions": [
+            {
+              "id": "has-data",
+              "leftValue": "={{ String($json.hasData) }}",
+              "rightValue": "true",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [-1696, 128],
+      "id": "poxpur-w-005",
+      "name": "Mensagem válida?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/functions/v1/whatsapp-inbound",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ kind: 'message', fromPhone: $json.telefone, fromName: $json.pushName, text: $json.text, type: $json.type, whatsappMessageId: $json.whatsappMessageId, mediaUrl: $json.mediaUrl, mediaMime: $json.mediaMime, mediaFilename: $json.mediaFilename }) }}",
+        "options": { "timeout": 10000 }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-1472, 64],
+      "id": "poxpur-w-006",
+      "name": "Edge: Mensagem",
+      "credentials": {
+        "httpHeaderAuth": { "id": "REPLACE_WITH_CREDENTIAL_ID", "name": "Supabase Service Role" }
+      }
+    },
+
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "poxpur-send-text",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [-2400, 400],
+      "id": "poxpur-w-010",
+      "name": "Webhook Send Text",
+      "webhookId": "poxpur-send-text"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "={{ $env.EVOLUTION_INSTANCE }}",
+        "remoteJid": "={{ $json.body.to.replace(/^\\+/, '') }}",
+        "messageText": "={{ $json.body.text }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [-2176, 400],
+      "id": "poxpur-w-011",
+      "name": "Evolution sendText",
+      "credentials": {
+        "evolutionApi": { "id": "REPLACE_WITH_CREDENTIAL_ID", "name": "Evolution Poxpur" }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/messages?id=eq.{{ $('Webhook Send Text').first().json.body.messageId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Accept-Profile", "value": "poxpur" },
+            { "name": "Content-Profile", "value": "poxpur" },
+            { "name": "Prefer", "value": "return=minimal" }
+          ]
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ whatsapp_message_id: $json.key?.id || $json.messageId || null, metadata: { status: 'enviado', sent_via: 'evolution-n8n', evolution_response: $json } }) }}",
+        "options": { "timeout": 10000 }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-1952, 400],
+      "id": "poxpur-w-012",
+      "name": "PATCH status enviado",
+      "credentials": {
+        "httpHeaderAuth": { "id": "REPLACE_WITH_CREDENTIAL_ID", "name": "Supabase Service Role" }
+      }
+    },
+
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "poxpur-send-media",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [-2400, 800],
+      "id": "poxpur-w-020",
+      "name": "Webhook Send Media",
+      "webhookId": "poxpur-send-media"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b = $input.first().json.body;\nreturn [{ json: {\n  messageId: b.messageId,\n  conversationId: b.conversationId,\n  phone: (b.to || '').replace(/^\\+/, ''),\n  mediaType: b.mediaType,\n  mediaUrl: b.mediaUrl,\n  caption: b.caption || '',\n  filename: b.filename || ''\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-2176, 800],
+      "id": "poxpur-w-021",
+      "name": "Parse Media"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false, "typeValidation": "loose" },
+          "conditions": [
+            { "id": "is-image", "leftValue": "={{ $json.mediaType }}", "rightValue": "image", "operator": { "type": "string", "operation": "equals" } }
+          ],
+          "combinator": "and"
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [-1952, 800],
+      "id": "poxpur-w-022",
+      "name": "É image?"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "operation": "send-image",
+        "instanceName": "={{ $env.EVOLUTION_INSTANCE }}",
+        "remoteJid": "={{ $json.phone }}",
+        "media": "={{ $json.mediaUrl }}",
+        "caption": "={{ $json.caption }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [-1728, 736],
+      "id": "poxpur-w-023",
+      "name": "Send Image",
+      "credentials": {
+        "evolutionApi": { "id": "REPLACE_WITH_CREDENTIAL_ID", "name": "Evolution Poxpur" }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false, "typeValidation": "loose" },
+          "conditions": [
+            { "id": "is-audio", "leftValue": "={{ $json.mediaType }}", "rightValue": "audio", "operator": { "type": "string", "operation": "equals" } }
+          ],
+          "combinator": "and"
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [-1728, 864],
+      "id": "poxpur-w-024",
+      "name": "É audio?"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "operation": "send-audio",
+        "instanceName": "={{ $env.EVOLUTION_INSTANCE }}",
+        "remoteJid": "={{ $json.phone }}",
+        "media": "={{ $json.mediaUrl }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [-1504, 800],
+      "id": "poxpur-w-025",
+      "name": "Send Audio",
+      "credentials": {
+        "evolutionApi": { "id": "REPLACE_WITH_CREDENTIAL_ID", "name": "Evolution Poxpur" }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false, "typeValidation": "loose" },
+          "conditions": [
+            { "id": "is-video", "leftValue": "={{ $json.mediaType }}", "rightValue": "video", "operator": { "type": "string", "operation": "equals" } }
+          ],
+          "combinator": "and"
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [-1504, 928],
+      "id": "poxpur-w-026",
+      "name": "É video?"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "operation": "send-video",
+        "instanceName": "={{ $env.EVOLUTION_INSTANCE }}",
+        "remoteJid": "={{ $json.phone }}",
+        "media": "={{ $json.mediaUrl }}",
+        "caption": "={{ $json.caption }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [-1280, 864],
+      "id": "poxpur-w-027",
+      "name": "Send Video",
+      "credentials": {
+        "evolutionApi": { "id": "REPLACE_WITH_CREDENTIAL_ID", "name": "Evolution Poxpur" }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "operation": "send-document",
+        "instanceName": "={{ $env.EVOLUTION_INSTANCE }}",
+        "remoteJid": "={{ $json.phone }}",
+        "media": "={{ $json.mediaUrl }}",
+        "caption": "={{ $json.caption }}",
+        "fileName": "={{ $json.filename }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [-1280, 992],
+      "id": "poxpur-w-028",
+      "name": "Send Document",
+      "credentials": {
+        "evolutionApi": { "id": "REPLACE_WITH_CREDENTIAL_ID", "name": "Evolution Poxpur" }
+      }
+    },
+
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "poxpur-react",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [-2400, 1200],
+      "id": "poxpur-w-030",
+      "name": "Webhook React",
+      "webhookId": "poxpur-react"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "operation": "send-reaction",
+        "instanceName": "={{ $env.EVOLUTION_INSTANCE }}",
+        "remoteJid": "={{ ($json.body.to || '').replace(/^\\+/, '') }}",
+        "messageId": "={{ $json.body.whatsappMessageId }}",
+        "reaction": "={{ $json.body.emoji }}"
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [-2176, 1200],
+      "id": "poxpur-w-031",
+      "name": "Evolution sendReaction",
+      "credentials": {
+        "evolutionApi": { "id": "REPLACE_WITH_CREDENTIAL_ID", "name": "Evolution Poxpur" }
+      }
+    },
+
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "poxpur-delete",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [-2400, 1400],
+      "id": "poxpur-w-040",
+      "name": "Webhook Delete",
+      "webhookId": "poxpur-delete"
+    },
+    {
+      "parameters": {
+        "resource": "chat-api",
+        "operation": "delete-message",
+        "instanceName": "={{ $env.EVOLUTION_INSTANCE }}",
+        "remoteJid": "={{ ($json.body.to || '').replace(/^\\+/, '') }}",
+        "messageId": "={{ $json.body.whatsappMessageId }}",
+        "fromMe": true
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [-2176, 1400],
+      "id": "poxpur-w-041",
+      "name": "Evolution deleteMessage",
+      "credentials": {
+        "evolutionApi": { "id": "REPLACE_WITH_CREDENTIAL_ID", "name": "Evolution Poxpur" }
+      }
+    },
+
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "poxpur-invite-user",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [-2400, 1600],
+      "id": "poxpur-w-050",
+      "name": "Webhook Invite User",
+      "webhookId": "poxpur-invite-user"
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.POXPUR_INVITE_FROM_EMAIL }}",
+        "toEmail": "={{ $json.body.to }}",
+        "subject": "={{ $json.body.inviteName ? $json.body.inviteName + ', voce foi convidado(a) para o Poxpur Sales Hub' : $json.body.invitedBy + ' convidou voce para o Poxpur Sales Hub' }}",
+        "html": "=<!DOCTYPE html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0\"></head><body style=\"margin:0;padding:0;background-color:#f5f7fa;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;\"><table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:#f5f7fa;padding:40px 20px;\"><tr><td align=\"center\"><table width=\"580\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.06);\"><tr><td style=\"background:linear-gradient(135deg,#1B2C5E,#0F1B3D);padding:36px 40px 32px;text-align:center;\"><h1 style=\"color:#ffffff;font-size:24px;font-weight:800;margin:0;letter-spacing:-0.5px;\">POX<span style=\"color:#8BC53F;\">X</span>PUR</h1><p style=\"color:rgba(255,255,255,0.6);font-size:11px;margin:6px 0 0;text-transform:uppercase;letter-spacing:2px;\">Sales Hub</p></td></tr><tr><td style=\"padding:40px 40px 0;\"><p style=\"color:#1a1a2e;font-size:20px;font-weight:700;margin:0 0 6px;\">{{ $json.body.inviteName ? 'Ola, ' + $json.body.inviteName + '!' : 'Voce foi convidado!' }}</p><p style=\"color:#555;font-size:14px;line-height:1.7;margin:0 0 28px;\"><strong style=\"color:#333;\">{{ $json.body.invitedBy }}</strong> convidou voce para a equipe <strong style=\"color:#333;\">{{ $json.body.orgName }}</strong> no Poxpur Sales Hub.</p></td></tr><tr><td style=\"padding:0 40px;\"><table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin-bottom:28px;\"><tr><td style=\"background:#f5f7fa;border-radius:12px;padding:16px 20px;width:50%;\" valign=\"top\"><p style=\"margin:0;color:#888;font-size:10px;text-transform:uppercase;letter-spacing:1.2px;font-weight:600;\">Equipe</p><p style=\"margin:5px 0 0;color:#1B2C5E;font-size:15px;font-weight:700;\">{{ $json.body.orgName }}</p></td><td style=\"width:12px;\"></td><td style=\"background:#f5f7fa;border-radius:12px;padding:16px 20px;width:50%;\" valign=\"top\"><p style=\"margin:0;color:#888;font-size:10px;text-transform:uppercase;letter-spacing:1.2px;font-weight:600;\">Sua funcao</p><p style=\"margin:5px 0 0;color:#1B2C5E;font-size:15px;font-weight:700;\">{{ $json.body.role }}</p></td></tr></table></td></tr><tr><td style=\"padding:0 40px;\"><p style=\"color:#555;font-size:13px;line-height:1.6;margin:0 0 24px;\">Clique no botao abaixo para criar sua senha e comecar a usar o sistema. O convite expira em <strong>7 dias</strong>.</p><table cellpadding=\"0\" cellspacing=\"0\" width=\"100%\"><tr><td align=\"center\" style=\"padding:4px 0 0;\"><a href=\"{{ $json.body.inviteLink }}\" style=\"display:inline-block;background:linear-gradient(135deg,#8BC53F,#6BA02F);color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:15px 48px;border-radius:12px;letter-spacing:0.3px;box-shadow:0 4px 12px rgba(139,197,63,0.3);\">Aceitar Convite e Criar Conta</a></td></tr></table></td></tr><tr><td style=\"padding:28px 40px 40px;\"><p style=\"color:#aaa;font-size:11px;line-height:1.5;margin:0;\">Se o botao nao funcionar, copie e cole este link no navegador:<br><a href=\"{{ $json.body.inviteLink }}\" style=\"color:#8BC53F;word-break:break-all;font-size:11px;\">{{ $json.body.inviteLink }}</a></p></td></tr><tr><td style=\"background:#f5f7fa;padding:24px 40px;border-top:1px solid #eee;\"><p style=\"color:#aaa;font-size:10px;margin:0;\">Poxpur Sales Hub &copy; 2026 - Email automatico</p></td></tr></table></td></tr></table></body></html>",
+        "options": { "replyTo": "={{ $env.POXPUR_INVITE_FROM_EMAIL }}" }
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [-2176, 1600],
+      "id": "poxpur-w-051",
+      "name": "Enviar Email Convite",
+      "credentials": {
+        "smtp": { "id": "REPLACE_WITH_CREDENTIAL_ID", "name": "Poxpur SMTP" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { success: true, message: 'Convite enviado por email' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-1952, 1600],
+      "id": "poxpur-w-052",
+      "name": "Resposta Convite"
+    },
+
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "poxpur-email-generic",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [-2400, 1800],
+      "id": "poxpur-w-060",
+      "name": "Webhook Email Genérico",
+      "webhookId": "poxpur-email-generic"
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.POXPUR_INVITE_FROM_EMAIL }}",
+        "toEmail": "={{ $json.body.to }}",
+        "subject": "={{ $json.body.subject }}",
+        "html": "={{ $json.body.html || '<p>' + ($json.body.text || '') + '</p>' }}",
+        "options": { "replyTo": "={{ $env.POXPUR_INVITE_FROM_EMAIL }}" }
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [-2176, 1800],
+      "id": "poxpur-w-061",
+      "name": "Enviar Email",
+      "credentials": {
+        "smtp": { "id": "REPLACE_WITH_CREDENTIAL_ID", "name": "Poxpur SMTP" }
+      }
+    },
+
+    {
+      "parameters": {
+        "rule": { "interval": [{ "field": "cronExpression", "expression": "0 18 * * *" }] }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-2400, 2000],
+      "id": "poxpur-w-070",
+      "name": "Cron 18:00"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/orders?select=id,numero,status,valor_total&criado_em=gte.{{ new Date(new Date().setHours(0,0,0,0)).toISOString() }}&criado_em=lt.{{ new Date(new Date().setHours(24,0,0,0)).toISOString() }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Accept-Profile", "value": "poxpur" }]
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "options": { "timeout": 10000 }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-2176, 2000],
+      "id": "poxpur-w-071",
+      "name": "Pedidos do dia",
+      "credentials": {
+        "httpHeaderAuth": { "id": "REPLACE_WITH_CREDENTIAL_ID", "name": "Supabase Service Role" }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/company_settings?select=whatsapp_phone,recebe_resumo_diario&singleton=eq.true",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Accept-Profile", "value": "poxpur" }]
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "options": { "timeout": 10000 }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-1952, 2000],
+      "id": "poxpur-w-072",
+      "name": "Config empresa",
+      "credentials": {
+        "httpHeaderAuth": { "id": "REPLACE_WITH_CREDENTIAL_ID", "name": "Supabase Service Role" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const orders = $('Pedidos do dia').first().json || [];\nconst settings = ($('Config empresa').first().json || [])[0] || {};\nif (!settings.recebe_resumo_diario || !settings.whatsapp_phone) {\n  return [{ json: { skip: true } }];\n}\nconst byStatus = orders.reduce((a, o) => { a[o.status] = (a[o.status] || 0) + 1; return a; }, {});\nconst fat = orders.filter(o => !['recusado','cancelado'].includes(o.status))\n  .reduce((s, o) => s + Number(o.valor_total || 0), 0);\nconst pend = orders.filter(o => o.status === 'pendente_aprovacao').length;\nconst awf = orders.filter(o => o.status === 'aguardando_fabrica').length;\nconst fmt = n => new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' }).format(n);\nconst hoje = new Date().toLocaleDateString('pt-BR');\nconst lines = [\n  `📊 *Resumo Poxpur — ${hoje}*`, '',\n  `Pedidos hoje: *${orders.length}*`, `Faturamento: *${fmt(fat)}*`, '', '*Por status:*',\n  ...Object.entries(byStatus).map(([s,c]) => `• ${s.replace(/_/g,' ')}: ${c}`)\n];\nif (pend > 0) lines.push('', `⚠️ *${pend} pedido(s) aguardando aprovação*`);\nif (awf > 0) lines.push(`🏭 *${awf} pedido(s) aguardando fábrica*`);\nlines.push('', '_Acesse o Sales Hub para ver detalhes._');\nreturn [{ json: { skip: false, phone: settings.whatsapp_phone.replace(/^\\+/,''), text: lines.join('\\n') } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-1728, 2000],
+      "id": "poxpur-w-073",
+      "name": "Montar resumo"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false, "typeValidation": "loose" },
+          "conditions": [
+            { "id": "send", "leftValue": "={{ String($json.skip) }}", "rightValue": "false", "operator": { "type": "string", "operation": "equals" } }
+          ],
+          "combinator": "and"
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [-1504, 2000],
+      "id": "poxpur-w-074",
+      "name": "Enviar resumo?"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "={{ $env.EVOLUTION_INSTANCE }}",
+        "remoteJid": "={{ $json.phone }}",
+        "messageText": "={{ $json.text }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [-1280, 1936],
+      "id": "poxpur-w-075",
+      "name": "Resumo: Evolution",
+      "credentials": {
+        "evolutionApi": { "id": "REPLACE_WITH_CREDENTIAL_ID", "name": "Evolution Poxpur" }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Inbound (Evolution)": { "main": [[{ "node": "Extrair Dados", "type": "main", "index": 0 }]] },
+    "Extrair Dados": { "main": [[{ "node": "É reação?", "type": "main", "index": 0 }]] },
+    "É reação?": {
+      "main": [
+        [{ "node": "Edge: Reação", "type": "main", "index": 0 }],
+        [{ "node": "Mensagem válida?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Mensagem válida?": { "main": [[{ "node": "Edge: Mensagem", "type": "main", "index": 0 }], []] },
+
+    "Webhook Send Text": { "main": [[{ "node": "Evolution sendText", "type": "main", "index": 0 }]] },
+    "Evolution sendText": { "main": [[{ "node": "PATCH status enviado", "type": "main", "index": 0 }]] },
+
+    "Webhook Send Media": { "main": [[{ "node": "Parse Media", "type": "main", "index": 0 }]] },
+    "Parse Media": { "main": [[{ "node": "É image?", "type": "main", "index": 0 }]] },
+    "É image?": {
+      "main": [
+        [{ "node": "Send Image", "type": "main", "index": 0 }],
+        [{ "node": "É audio?", "type": "main", "index": 0 }]
+      ]
+    },
+    "É audio?": {
+      "main": [
+        [{ "node": "Send Audio", "type": "main", "index": 0 }],
+        [{ "node": "É video?", "type": "main", "index": 0 }]
+      ]
+    },
+    "É video?": {
+      "main": [
+        [{ "node": "Send Video", "type": "main", "index": 0 }],
+        [{ "node": "Send Document", "type": "main", "index": 0 }]
+      ]
+    },
+
+    "Webhook React": { "main": [[{ "node": "Evolution sendReaction", "type": "main", "index": 0 }]] },
+    "Webhook Delete": { "main": [[{ "node": "Evolution deleteMessage", "type": "main", "index": 0 }]] },
+
+    "Webhook Invite User": { "main": [[{ "node": "Enviar Email Convite", "type": "main", "index": 0 }]] },
+    "Enviar Email Convite": { "main": [[{ "node": "Resposta Convite", "type": "main", "index": 0 }]] },
+
+    "Webhook Email Genérico": { "main": [[{ "node": "Enviar Email", "type": "main", "index": 0 }]] },
+
+    "Cron 18:00": { "main": [[{ "node": "Pedidos do dia", "type": "main", "index": 0 }]] },
+    "Pedidos do dia": { "main": [[{ "node": "Config empresa", "type": "main", "index": 0 }]] },
+    "Config empresa": { "main": [[{ "node": "Montar resumo", "type": "main", "index": 0 }]] },
+    "Montar resumo": { "main": [[{ "node": "Enviar resumo?", "type": "main", "index": 0 }]] },
+    "Enviar resumo?": { "main": [[{ "node": "Resumo: Evolution", "type": "main", "index": 0 }], []] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1", "timezone": "America/Sao_Paulo" },
+  "versionId": "v2",
+  "meta": { "instanceId": "poxpur-sales-hub" },
+  "tags": [{ "name": "poxpur" }, { "name": "whatsapp" }, { "name": "email" }]
+}
