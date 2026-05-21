@@ -1,9 +1,8 @@
 import { useLocation } from 'react-router-dom';
-import { Bell, Moon, Sun, LogOut, UserCircle } from 'lucide-react';
+import { Moon, Sun, LogOut, UserCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUiStore } from '@/stores/uiStore';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -20,6 +19,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 const routeLabels: Record<string, string> = {
   '/dashboard': 'Dashboard',
@@ -53,22 +53,9 @@ export function Header() {
         </h1>
       </div>
 
-      <TooltipProvider delayDuration={200}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-5 w-5" />
-              <Badge
-                variant="secondary"
-                className="absolute -right-1 -top-1 h-4 min-w-4 bg-muted px-1 text-[10px] text-muted-foreground"
-              >
-                0
-              </Badge>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Notificações (em breve)</TooltipContent>
-        </Tooltip>
+      <NotificationBell />
 
+      <TooltipProvider delayDuration={200}>
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Alternar tema">
