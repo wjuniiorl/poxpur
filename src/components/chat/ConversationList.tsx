@@ -1,5 +1,14 @@
 import { useState } from 'react';
-import { Search, MessageSquare, Plus } from 'lucide-react';
+import {
+  Search,
+  MessageSquare,
+  Plus,
+  Inbox,
+  BellDot,
+  UserCheck,
+  UserX,
+  Archive,
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -17,12 +26,19 @@ import type { ConversationWithRelations } from '@/types/database';
 
 type FilterTab = 'all' | 'nao_lidas' | 'me' | 'unassigned' | 'arquivadas';
 
-const TABS: { key: FilterTab; label: string; adminOnly?: boolean }[] = [
-  { key: 'all', label: 'Todas' },
-  { key: 'nao_lidas', label: 'Não lidas' },
-  { key: 'me', label: 'Minhas' },
-  { key: 'unassigned', label: 'Sem atribuição', adminOnly: true },
-  { key: 'arquivadas', label: 'Arquivadas' },
+type TabDef = {
+  key: FilterTab;
+  label: string;
+  icon: typeof Inbox;
+  adminOnly?: boolean;
+};
+
+const TABS: TabDef[] = [
+  { key: 'all', label: 'Todas', icon: Inbox },
+  { key: 'nao_lidas', label: 'Não lidas', icon: BellDot },
+  { key: 'me', label: 'Minhas', icon: UserCheck },
+  { key: 'unassigned', label: 'Sem atribuição', icon: UserX, adminOnly: true },
+  { key: 'arquivadas', label: 'Arquivadas', icon: Archive },
 ];
 
 // ─── Avatar Initials Helper ───────────────────────────────────────────────────
@@ -165,22 +181,39 @@ export function ConversationList({ selectedId, onSelect }: ConversationListProps
         </div>
       </div>
 
-      {/* Filter Tabs — flex-wrap em vez de scroll */}
-      <div className="flex flex-wrap gap-1 p-1.5 border-b border-border shrink-0">
-        {visibleTabs.map((tab) => (
-          <Button
-            key={tab.key}
-            variant={activeTab === tab.key ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setActiveTab(tab.key)}
-            className={cn(
-              'h-6 text-[11px] px-2 whitespace-nowrap',
-              activeTab === tab.key && 'bg-poxpur-green hover:bg-poxpur-green-dark text-white',
-            )}
-          >
-            {tab.label}
-          </Button>
-        ))}
+      {/* Filter Tabs — ícones em linha única, label do ativo aparece à direita */}
+      <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border shrink-0">
+        <TooltipProvider delayDuration={200}>
+          <div className="flex items-center gap-0.5">
+            {visibleTabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.key;
+              return (
+                <Tooltip key={tab.key}>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab(tab.key)}
+                      aria-label={tab.label}
+                      className={cn(
+                        'h-7 w-7 grid place-items-center rounded-md transition-colors',
+                        isActive
+                          ? 'bg-poxpur-green text-white'
+                          : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
+                      )}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">{tab.label}</TooltipContent>
+                </Tooltip>
+              );
+            })}
+          </div>
+          <span className="text-[11px] font-medium text-poxpur-navy truncate">
+            {visibleTabs.find((t) => t.key === activeTab)?.label}
+          </span>
+        </TooltipProvider>
       </div>
 
       <NewConversationDialog
