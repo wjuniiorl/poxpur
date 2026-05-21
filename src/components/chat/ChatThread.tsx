@@ -125,7 +125,15 @@ function SimulateDialog({
 
 // ─── Message list with date separators ───────────────────────────────────────
 
-function MessageList({ messages }: { messages: PoxpurMessage[] }) {
+function MessageList({
+  messages,
+  conversationId,
+  customerPhone,
+}: {
+  messages: PoxpurMessage[];
+  conversationId: string;
+  customerPhone: string;
+}) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -156,6 +164,8 @@ function MessageList({ messages }: { messages: PoxpurMessage[] }) {
         key={msg.id}
         message={msg}
         previousSenderType={prev?.sender_type}
+        conversationId={conversationId}
+        customerPhone={customerPhone}
       />,
     );
   }
@@ -319,7 +329,7 @@ export function ChatThread({ conversationId }: ChatThreadProps) {
           <p className="text-xs">Nenhuma mensagem ainda. Diga olá!</p>
         </div>
       ) : (
-        <MessageList messages={messages} />
+        <MessageList messages={messages} conversationId={conversationId} customerPhone={phone ?? ''} />
       )}
 
       {/* ── Composer ───────────────────────────────────────────────────── */}

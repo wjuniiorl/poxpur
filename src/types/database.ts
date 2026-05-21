@@ -331,6 +331,36 @@ export type Database = {
         Update: Partial<Database['poxpur']['Tables']['internal_messages']['Insert']>;
         Relationships: [];
       };
+      user_invitations: {
+        Row: {
+          id: string;
+          email: string;
+          nome: string | null;
+          role: 'admin' | 'vendedor';
+          token: string;
+          status: 'pendente' | 'aceito' | 'expirado' | 'cancelado';
+          invited_by: string;
+          accepted_user_id: string | null;
+          expires_at: string;
+          criado_em: string;
+          atualizado_em: string;
+        };
+        Insert: {
+          id?: string;
+          email: string;
+          nome?: string | null;
+          role?: 'admin' | 'vendedor';
+          token?: string;
+          status?: 'pendente' | 'aceito' | 'expirado' | 'cancelado';
+          invited_by: string;
+          accepted_user_id?: string | null;
+          expires_at?: string;
+          criado_em?: string;
+          atualizado_em?: string;
+        };
+        Update: Partial<Database['poxpur']['Tables']['user_invitations']['Insert']>;
+        Relationships: [];
+      };
       conversations: {
         Row: {
           id: string;
@@ -372,6 +402,9 @@ export type Database = {
           tipo: 'texto' | 'imagem' | 'audio' | 'documento' | 'localizacao' | 'template';
           conteudo: string;
           anexo_url: string | null;
+          media_mime: string | null;
+          media_filename: string | null;
+          reactions: Array<{ by: string; emoji: string; at: string }>;
           metadata: Record<string, unknown> | null;
           whatsapp_message_id: string | null;
           lida: boolean;
@@ -385,6 +418,9 @@ export type Database = {
           tipo?: 'texto' | 'imagem' | 'audio' | 'documento' | 'localizacao' | 'template';
           conteudo: string;
           anexo_url?: string | null;
+          media_mime?: string | null;
+          media_filename?: string | null;
+          reactions?: Array<{ by: string; emoji: string; at: string }>;
           metadata?: Record<string, unknown> | null;
           whatsapp_message_id?: string | null;
           lida?: boolean;
@@ -431,6 +467,10 @@ export type Database = {
     Views: Record<string, never>;
     Functions: {
       is_admin: { Args: Record<string, never>; Returns: boolean };
+      upsert_message_reaction: {
+        Args: { p_whatsapp_message_id: string; p_by: string; p_emoji: string };
+        Returns: void;
+      };
     };
     Enums: {
       user_role: 'admin' | 'vendedor';
@@ -499,6 +539,8 @@ export type PoxpurInternalChannel = Database['poxpur']['Tables']['internal_chann
 export type PoxpurInternalChannelInsert = Database['poxpur']['Tables']['internal_channels']['Insert'];
 export type PoxpurInternalMessage = Database['poxpur']['Tables']['internal_messages']['Row'];
 export type PoxpurInternalMessageInsert = Database['poxpur']['Tables']['internal_messages']['Insert'];
+export type PoxpurUserInvitation = Database['poxpur']['Tables']['user_invitations']['Row'];
+export type PoxpurUserInvitationInsert = Database['poxpur']['Tables']['user_invitations']['Insert'];
 export type TaskStatus = Database['poxpur']['Enums']['task_status'];
 export type TaskPriority = Database['poxpur']['Enums']['task_priority'];
 export type ChannelType = Database['poxpur']['Enums']['channel_type'];
