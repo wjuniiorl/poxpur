@@ -193,6 +193,54 @@ export type Database = {
         Update: Partial<Database['poxpur']['Tables']['order_items']['Insert']>;
         Relationships: [];
       };
+      company_settings: {
+        Row: {
+          id: string;
+          singleton: boolean;
+          razao_social: string | null;
+          nome_fantasia: string | null;
+          cnpj: string | null;
+          inscricao_estadual: string | null;
+          endereco: string | null;
+          cidade: string | null;
+          estado: string | null;
+          cep: string | null;
+          telefone: string | null;
+          email: string | null;
+          logo_url: string | null;
+          whatsapp_phone: string | null;
+          whatsapp_token_configured: boolean;
+          n8n_webhook_url: string | null;
+          recebe_resumo_diario: boolean;
+          hora_resumo_diario: string | null;
+          criado_em: string;
+          atualizado_em: string;
+        };
+        Insert: {
+          id?: string;
+          singleton?: boolean;
+          razao_social?: string | null;
+          nome_fantasia?: string | null;
+          cnpj?: string | null;
+          inscricao_estadual?: string | null;
+          endereco?: string | null;
+          cidade?: string | null;
+          estado?: string | null;
+          cep?: string | null;
+          telefone?: string | null;
+          email?: string | null;
+          logo_url?: string | null;
+          whatsapp_phone?: string | null;
+          whatsapp_token_configured?: boolean;
+          n8n_webhook_url?: string | null;
+          recebe_resumo_diario?: boolean;
+          hora_resumo_diario?: string | null;
+          criado_em?: string;
+          atualizado_em?: string;
+        };
+        Update: Partial<Database['poxpur']['Tables']['company_settings']['Insert']>;
+        Relationships: [];
+      };
       tasks: {
         Row: {
           id: string;
@@ -443,6 +491,8 @@ export type ConversationStatus = Database['poxpur']['Enums']['conversation_statu
 export type MessageSenderType = Database['poxpur']['Enums']['message_sender_type'];
 export type MessageType = Database['poxpur']['Enums']['message_type'];
 
+export type PoxpurCompanySettings = Database['poxpur']['Tables']['company_settings']['Row'];
+export type PoxpurCompanySettingsInsert = Database['poxpur']['Tables']['company_settings']['Insert'];
 export type PoxpurTask = Database['poxpur']['Tables']['tasks']['Row'];
 export type PoxpurTaskInsert = Database['poxpur']['Tables']['tasks']['Insert'];
 export type PoxpurInternalChannel = Database['poxpur']['Tables']['internal_channels']['Row'];
