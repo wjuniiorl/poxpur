@@ -50,7 +50,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.SUPABASE_URL }}/functions/v1/whatsapp-inbound",
+        "url": "https://xeondnsyfhhxkdpugmap.supabase.co/functions/v1/whatsapp-inbound",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [{ "name": "Content-Type", "value": "application/json" }]
@@ -95,7 +95,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.SUPABASE_URL }}/functions/v1/whatsapp-inbound",
+        "url": "https://xeondnsyfhhxkdpugmap.supabase.co/functions/v1/whatsapp-inbound",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [{ "name": "Content-Type", "value": "application/json" }]
@@ -134,7 +134,7 @@
     {
       "parameters": {
         "resource": "messages-api",
-        "instanceName": "={{ $env.EVOLUTION_INSTANCE }}",
+        "instanceName": "escritorio-wl",
         "remoteJid": "={{ $json.body.to.replace(/^\\+/, '') }}",
         "messageText": "={{ $json.body.text }}",
         "options_message": {}
@@ -151,7 +151,7 @@
     {
       "parameters": {
         "method": "PATCH",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/messages?id=eq.{{ $('Webhook Send Text').first().json.body.messageId }}",
+        "url": "https://xeondnsyfhhxkdpugmap.supabase.co/rest/v1/messages?id=eq.{{ $('Webhook Send Text').first().json.body.messageId }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -222,7 +222,7 @@
       "parameters": {
         "resource": "messages-api",
         "operation": "send-image",
-        "instanceName": "={{ $env.EVOLUTION_INSTANCE }}",
+        "instanceName": "escritorio-wl",
         "remoteJid": "={{ $json.phone }}",
         "media": "={{ $json.mediaUrl }}",
         "caption": "={{ $json.caption }}",
@@ -257,7 +257,7 @@
       "parameters": {
         "resource": "messages-api",
         "operation": "send-audio",
-        "instanceName": "={{ $env.EVOLUTION_INSTANCE }}",
+        "instanceName": "escritorio-wl",
         "remoteJid": "={{ $json.phone }}",
         "media": "={{ $json.mediaUrl }}",
         "options_message": {}
@@ -291,7 +291,7 @@
       "parameters": {
         "resource": "messages-api",
         "operation": "send-video",
-        "instanceName": "={{ $env.EVOLUTION_INSTANCE }}",
+        "instanceName": "escritorio-wl",
         "remoteJid": "={{ $json.phone }}",
         "media": "={{ $json.mediaUrl }}",
         "caption": "={{ $json.caption }}",
@@ -310,7 +310,7 @@
       "parameters": {
         "resource": "messages-api",
         "operation": "send-document",
-        "instanceName": "={{ $env.EVOLUTION_INSTANCE }}",
+        "instanceName": "escritorio-wl",
         "remoteJid": "={{ $json.phone }}",
         "media": "={{ $json.mediaUrl }}",
         "caption": "={{ $json.caption }}",
@@ -345,7 +345,7 @@
       "parameters": {
         "resource": "messages-api",
         "operation": "send-reaction",
-        "instanceName": "={{ $env.EVOLUTION_INSTANCE }}",
+        "instanceName": "escritorio-wl",
         "remoteJid": "={{ ($json.body.to || '').replace(/^\\+/, '') }}",
         "messageId": "={{ $json.body.whatsappMessageId }}",
         "reaction": "={{ $json.body.emoji }}"
@@ -378,7 +378,7 @@
       "parameters": {
         "resource": "chat-api",
         "operation": "delete-message",
-        "instanceName": "={{ $env.EVOLUTION_INSTANCE }}",
+        "instanceName": "escritorio-wl",
         "remoteJid": "={{ ($json.body.to || '').replace(/^\\+/, '') }}",
         "messageId": "={{ $json.body.whatsappMessageId }}",
         "fromMe": true
@@ -409,11 +409,11 @@
     },
     {
       "parameters": {
-        "fromEmail": "={{ $env.POXPUR_INVITE_FROM_EMAIL }}",
+        "fromEmail": "no-reply@poxpur.com.br",
         "toEmail": "={{ $json.body.to }}",
         "subject": "={{ $json.body.inviteName ? $json.body.inviteName + ', voce foi convidado(a) para o Poxpur Sales Hub' : $json.body.invitedBy + ' convidou voce para o Poxpur Sales Hub' }}",
         "html": "=<!DOCTYPE html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0\"></head><body style=\"margin:0;padding:0;background-color:#f5f7fa;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;\"><table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:#f5f7fa;padding:40px 20px;\"><tr><td align=\"center\"><table width=\"580\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.06);\"><tr><td style=\"background:linear-gradient(135deg,#1B2C5E,#0F1B3D);padding:36px 40px 32px;text-align:center;\"><h1 style=\"color:#ffffff;font-size:24px;font-weight:800;margin:0;letter-spacing:-0.5px;\">POX<span style=\"color:#8BC53F;\">X</span>PUR</h1><p style=\"color:rgba(255,255,255,0.6);font-size:11px;margin:6px 0 0;text-transform:uppercase;letter-spacing:2px;\">Sales Hub</p></td></tr><tr><td style=\"padding:40px 40px 0;\"><p style=\"color:#1a1a2e;font-size:20px;font-weight:700;margin:0 0 6px;\">{{ $json.body.inviteName ? 'Ola, ' + $json.body.inviteName + '!' : 'Voce foi convidado!' }}</p><p style=\"color:#555;font-size:14px;line-height:1.7;margin:0 0 28px;\"><strong style=\"color:#333;\">{{ $json.body.invitedBy }}</strong> convidou voce para a equipe <strong style=\"color:#333;\">{{ $json.body.orgName }}</strong> no Poxpur Sales Hub.</p></td></tr><tr><td style=\"padding:0 40px;\"><table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin-bottom:28px;\"><tr><td style=\"background:#f5f7fa;border-radius:12px;padding:16px 20px;width:50%;\" valign=\"top\"><p style=\"margin:0;color:#888;font-size:10px;text-transform:uppercase;letter-spacing:1.2px;font-weight:600;\">Equipe</p><p style=\"margin:5px 0 0;color:#1B2C5E;font-size:15px;font-weight:700;\">{{ $json.body.orgName }}</p></td><td style=\"width:12px;\"></td><td style=\"background:#f5f7fa;border-radius:12px;padding:16px 20px;width:50%;\" valign=\"top\"><p style=\"margin:0;color:#888;font-size:10px;text-transform:uppercase;letter-spacing:1.2px;font-weight:600;\">Sua funcao</p><p style=\"margin:5px 0 0;color:#1B2C5E;font-size:15px;font-weight:700;\">{{ $json.body.role }}</p></td></tr></table></td></tr><tr><td style=\"padding:0 40px;\"><p style=\"color:#555;font-size:13px;line-height:1.6;margin:0 0 24px;\">Clique no botao abaixo para criar sua senha e comecar a usar o sistema. O convite expira em <strong>7 dias</strong>.</p><table cellpadding=\"0\" cellspacing=\"0\" width=\"100%\"><tr><td align=\"center\" style=\"padding:4px 0 0;\"><a href=\"{{ $json.body.inviteLink }}\" style=\"display:inline-block;background:linear-gradient(135deg,#8BC53F,#6BA02F);color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:15px 48px;border-radius:12px;letter-spacing:0.3px;box-shadow:0 4px 12px rgba(139,197,63,0.3);\">Aceitar Convite e Criar Conta</a></td></tr></table></td></tr><tr><td style=\"padding:28px 40px 40px;\"><p style=\"color:#aaa;font-size:11px;line-height:1.5;margin:0;\">Se o botao nao funcionar, copie e cole este link no navegador:<br><a href=\"{{ $json.body.inviteLink }}\" style=\"color:#8BC53F;word-break:break-all;font-size:11px;\">{{ $json.body.inviteLink }}</a></p></td></tr><tr><td style=\"background:#f5f7fa;padding:24px 40px;border-top:1px solid #eee;\"><p style=\"color:#aaa;font-size:10px;margin:0;\">Poxpur Sales Hub &copy; 2026 - Email automatico</p></td></tr></table></td></tr></table></body></html>",
-        "options": { "replyTo": "={{ $env.POXPUR_INVITE_FROM_EMAIL }}" }
+        "options": { "replyTo": "no-reply@poxpur.com.br" }
       },
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
@@ -451,11 +451,11 @@
     },
     {
       "parameters": {
-        "fromEmail": "={{ $env.POXPUR_INVITE_FROM_EMAIL }}",
+        "fromEmail": "no-reply@poxpur.com.br",
         "toEmail": "={{ $json.body.to }}",
         "subject": "={{ $json.body.subject }}",
         "html": "={{ $json.body.html || '<p>' + ($json.body.text || '') + '</p>' }}",
-        "options": { "replyTo": "={{ $env.POXPUR_INVITE_FROM_EMAIL }}" }
+        "options": { "replyTo": "no-reply@poxpur.com.br" }
       },
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
@@ -480,7 +480,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/orders?select=id,numero,status,valor_total&criado_em=gte.{{ new Date(new Date().setHours(0,0,0,0)).toISOString() }}&criado_em=lt.{{ new Date(new Date().setHours(24,0,0,0)).toISOString() }}",
+        "url": "https://xeondnsyfhhxkdpugmap.supabase.co/rest/v1/orders?select=id,numero,status,valor_total&criado_em=gte.{{ new Date(new Date().setHours(0,0,0,0)).toISOString() }}&criado_em=lt.{{ new Date(new Date().setHours(24,0,0,0)).toISOString() }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [{ "name": "Accept-Profile", "value": "poxpur" }]
@@ -501,7 +501,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/company_settings?select=whatsapp_phone,recebe_resumo_diario&singleton=eq.true",
+        "url": "https://xeondnsyfhhxkdpugmap.supabase.co/rest/v1/company_settings?select=whatsapp_phone,recebe_resumo_diario&singleton=eq.true",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [{ "name": "Accept-Profile", "value": "poxpur" }]
@@ -548,7 +548,7 @@
     {
       "parameters": {
         "resource": "messages-api",
-        "instanceName": "={{ $env.EVOLUTION_INSTANCE }}",
+        "instanceName": "escritorio-wl",
         "remoteJid": "={{ $json.phone }}",
         "messageText": "={{ $json.text }}",
         "options_message": {}
