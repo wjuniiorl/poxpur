@@ -10,7 +10,7 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\" \"*.{ts,tsx,json}\"",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
-    "supabase:types": "supabase gen types typescript --project-id wpbuufsswgxutzzzxivp --schema poxpur > src/types/database.ts",
+    "supabase:types": "supabase gen types typescript --project-id xeondnsyfhhxkdpugmap --schema poxpur > src/types/database.ts",
     "icons:generate": "node scripts/generate-pwa-icons.mjs"
   },
   "dependencies": {
