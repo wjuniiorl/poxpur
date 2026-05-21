@@ -4,13 +4,21 @@ import { Toaster } from 'sonner';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { queryClient } from '@/lib/queryClient';
 import { AppRoutes } from './routes';
+import { OfflineBanner } from '@/components/common/OfflineBanner';
+import { PWAUpdatePrompt } from '@/components/common/PWAUpdatePrompt';
 
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider>
-          <AppRoutes />
+          <div className="flex h-screen w-screen flex-col">
+            <OfflineBanner />
+            <div className="min-h-0 flex-1">
+              <AppRoutes />
+            </div>
+          </div>
+          <PWAUpdatePrompt />
           <Toaster richColors position="top-right" />
         </AuthProvider>
       </BrowserRouter>
