@@ -16,6 +16,8 @@ export type OrderFilters = {
 
 export type CreateOrderPayload = {
   customer_id: string;
+  /** Optional override for seller — defaults to the current authenticated user */
+  seller_id?: string;
   forma_pagamento?: 'pix' | 'boleto' | 'cartao' | 'transferencia' | 'a_combinar' | null;
   prazo_entrega?: string | null;
   observacoes?: string | null;
@@ -123,7 +125,7 @@ export function useCreateOrder() {
 
   return useMutation({
     mutationFn: async (payload: CreateOrderPayload) => {
-      const sellerId = session?.user.id;
+      const sellerId = payload.seller_id ?? session?.user.id;
       if (!sellerId) throw new Error('Não autenticado');
 
       // 1. Insert order row
