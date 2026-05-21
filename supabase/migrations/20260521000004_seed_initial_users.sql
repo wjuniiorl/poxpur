@@ -12,7 +12,9 @@ begin
   insert into auth.users (
     id, instance_id, aud, role, email, encrypted_password,
     email_confirmed_at, created_at, updated_at,
-    raw_app_meta_data, raw_user_meta_data, is_super_admin
+    raw_app_meta_data, raw_user_meta_data, is_super_admin,
+    confirmation_token, recovery_token, email_change_token_new, email_change,
+    email_change_token_current, phone_change, phone_change_token, reauthentication_token
   )
   values (
     v_admin_id, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
@@ -20,14 +22,17 @@ begin
     now(), now(), now(),
     '{"provider":"email","providers":["email"]}'::jsonb,
     '{"nome":"Admin Poxpur"}'::jsonb,
-    false
+    false,
+    '', '', '', '', '', '', '', ''
   )
   on conflict (id) do nothing;
 
   insert into auth.users (
     id, instance_id, aud, role, email, encrypted_password,
     email_confirmed_at, created_at, updated_at,
-    raw_app_meta_data, raw_user_meta_data, is_super_admin
+    raw_app_meta_data, raw_user_meta_data, is_super_admin,
+    confirmation_token, recovery_token, email_change_token_new, email_change,
+    email_change_token_current, phone_change, phone_change_token, reauthentication_token
   )
   values (
     v_joao_id, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
@@ -35,14 +40,17 @@ begin
     now(), now(), now(),
     '{"provider":"email","providers":["email"]}'::jsonb,
     '{"nome":"João Silva"}'::jsonb,
-    false
+    false,
+    '', '', '', '', '', '', '', ''
   )
   on conflict (id) do nothing;
 
   insert into auth.users (
     id, instance_id, aud, role, email, encrypted_password,
     email_confirmed_at, created_at, updated_at,
-    raw_app_meta_data, raw_user_meta_data, is_super_admin
+    raw_app_meta_data, raw_user_meta_data, is_super_admin,
+    confirmation_token, recovery_token, email_change_token_new, email_change,
+    email_change_token_current, phone_change, phone_change_token, reauthentication_token
   )
   values (
     v_maria_id, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
@@ -50,7 +58,8 @@ begin
     now(), now(), now(),
     '{"provider":"email","providers":["email"]}'::jsonb,
     '{"nome":"Maria Souza"}'::jsonb,
-    false
+    false,
+    '', '', '', '', '', '', '', ''
   )
   on conflict (id) do nothing;
 
