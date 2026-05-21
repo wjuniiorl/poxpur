@@ -7,6 +7,7 @@ import { PoxpurSpinner } from '@/components/common/PoxpurSpinner';
 const Login = lazy(() => import('@/pages/Login'));
 const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
+const AcceptInvite = lazy(() => import('@/pages/AcceptInvite'));
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const Orders = lazy(() => import('@/pages/Orders'));
 const ChatWhatsApp = lazy(() => import('@/pages/ChatWhatsApp'));
@@ -29,6 +30,7 @@ export function AppRoutes() {
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/accept-invite" element={<AcceptInvite />} />
 
         {/* Protegidas */}
         <Route
