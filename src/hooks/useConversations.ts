@@ -203,6 +203,83 @@ export function useUnarchiveConversation() {
 
 // ─── Mark Conversation Read ───────────────────────────────────────────────────
 
+// ─── Create Conversation ──────────────────────────────────────────────────────
+
+function normalizePhone(input: string): string {
+  const digits = input.replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits.length === 10 || digits.length === 11) return `+55${digits}`;
+  return `+${digits}`;
+}
+
+export function useCreateConversation() {
+  const qc = useQueryClient();
+  const { session } = useAuth();
+
+  return useMutation({
+    mutationFn: async (args: {
+      customerId?: string | null;
+      phone: string;
+      nomeSnapshot?: string;
+      assignToMe?: boolean;
+    }): Promise<{ id: string }> => {
+      const phone = normalizePhone(args.phone);
+      if (!phone) throw new Error('Telefone inválido');
+
+      // Já existe conversa aberta com esse telefone? Retorna ela.
+      const { data: existing } = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('customer_phone', phone)
+        .eq('status', 'aberta')
+        .order('ultima_mensagem_em', { ascending: false, nullsFirst: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (existing) {
+        toast.info('Já existe uma conversa aberta com esse contato');
+        return { id: existing.id };
+      }
+
+      // Tenta linkar com customer existente se não veio customerId
+      let customerId = args.customerId ?? null;
+      let nomeSnapshot = args.nomeSnapshot ?? null;
+      if (!customerId) {
+        const { data: cust } = await supabase
+          .from('customers')
+          .select('id, nome')
+          .eq('telefone', phone)
+          .maybeSingle();
+        if (cust) {
+          customerId = cust.id;
+          nomeSnapshot = nomeSnapshot ?? cust.nome;
+        }
+      }
+
+      const { data, error } = await supabase
+        .from('conversations')
+        .insert({
+          customer_id: customerId,
+          customer_phone: phone,
+          customer_nome_snapshot: nomeSnapshot,
+          canal: 'whatsapp',
+          status: 'aberta',
+          assigned_to: args.assignToMe ? (session?.user.id ?? null) : null,
+        })
+        .select('id')
+        .single();
+      if (error) throw error;
+      return data as { id: string };
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['conversations'] });
+    },
+    onError: (err: Error) => {
+      toast.error(`Erro ao criar conversa: ${err.message}`);
+    },
+  });
+}
+
 export function useMarkConversationRead() {
   const qc = useQueryClient();
 

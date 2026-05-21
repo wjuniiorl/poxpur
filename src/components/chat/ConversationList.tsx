@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Search, MessageSquare } from 'lucide-react';
+import { Search, MessageSquare, Plus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { NewConversationDialog } from './NewConversationDialog';
 import { cn } from '@/lib/utils';
 import { fmtRelativeBR } from '@/lib/format';
 import { useConversations } from '@/hooks/useConversations';
@@ -103,6 +105,7 @@ export function ConversationList({ selectedId, onSelect }: ConversationListProps
   const isAdmin = useIsAdmin();
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
   const [search, setSearch] = useState('');
+  const [newDialogOpen, setNewDialogOpen] = useState(false);
 
   const filters = {
     status: activeTab === 'arquivadas' ? ('arquivada' as const) : activeTab === 'all' ? ('all' as const) : ('aberta' as const),
@@ -125,12 +128,29 @@ export function ConversationList({ selectedId, onSelect }: ConversationListProps
       {/* Header */}
       <div className="p-3 border-b border-border">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold text-sm">Conversas</h2>
-          {conversations && (
-            <Badge variant="secondary" className="text-xs">
-              {conversations.length}
-            </Badge>
-          )}
+          <div className="flex items-center gap-2">
+            <h2 className="font-semibold text-sm">Conversas</h2>
+            {conversations && (
+              <Badge variant="secondary" className="text-xs">
+                {conversations.length}
+              </Badge>
+            )}
+          </div>
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
+                  onClick={() => setNewDialogOpen(true)}
+                  className="h-7 w-7 bg-poxpur-green hover:bg-poxpur-green-dark text-white shrink-0"
+                  aria-label="Nova conversa"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Nova conversa</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
 
         {/* Search */}
@@ -145,8 +165,8 @@ export function ConversationList({ selectedId, onSelect }: ConversationListProps
         </div>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex overflow-x-auto gap-0.5 p-1.5 border-b border-border scrollbar-hide shrink-0">
+      {/* Filter Tabs — flex-wrap em vez de scroll */}
+      <div className="flex flex-wrap gap-1 p-1.5 border-b border-border shrink-0">
         {visibleTabs.map((tab) => (
           <Button
             key={tab.key}
@@ -154,7 +174,7 @@ export function ConversationList({ selectedId, onSelect }: ConversationListProps
             size="sm"
             onClick={() => setActiveTab(tab.key)}
             className={cn(
-              'h-6 text-[11px] px-2 whitespace-nowrap shrink-0',
+              'h-6 text-[11px] px-2 whitespace-nowrap',
               activeTab === tab.key && 'bg-poxpur-green hover:bg-poxpur-green-dark text-white',
             )}
           >
@@ -162,6 +182,12 @@ export function ConversationList({ selectedId, onSelect }: ConversationListProps
           </Button>
         ))}
       </div>
+
+      <NewConversationDialog
+        open={newDialogOpen}
+        onOpenChange={setNewDialogOpen}
+        onCreated={onSelect}
+      />
 
       {/* List */}
       <div className="flex-1 overflow-y-auto">
