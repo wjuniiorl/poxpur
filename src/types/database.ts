@@ -193,6 +193,68 @@ export type Database = {
         Update: Partial<Database['poxpur']['Tables']['order_items']['Insert']>;
         Relationships: [];
       };
+      conversations: {
+        Row: {
+          id: string;
+          customer_id: string | null;
+          customer_phone: string | null;
+          customer_nome_snapshot: string | null;
+          canal: 'whatsapp' | 'manual';
+          status: 'aberta' | 'arquivada';
+          assigned_to: string | null;
+          ultima_mensagem_em: string | null;
+          ultima_mensagem_preview: string | null;
+          nao_lidas: number;
+          criado_em: string;
+          atualizado_em: string;
+        };
+        Insert: {
+          id?: string;
+          customer_id?: string | null;
+          customer_phone?: string | null;
+          customer_nome_snapshot?: string | null;
+          canal?: 'whatsapp' | 'manual';
+          status?: 'aberta' | 'arquivada';
+          assigned_to?: string | null;
+          ultima_mensagem_em?: string | null;
+          ultima_mensagem_preview?: string | null;
+          nao_lidas?: number;
+          criado_em?: string;
+          atualizado_em?: string;
+        };
+        Update: Partial<Database['poxpur']['Tables']['conversations']['Insert']>;
+        Relationships: [];
+      };
+      messages: {
+        Row: {
+          id: string;
+          conversation_id: string;
+          sender_type: 'cliente' | 'vendedor' | 'sistema';
+          sender_id: string | null;
+          tipo: 'texto' | 'imagem' | 'audio' | 'documento' | 'localizacao' | 'template';
+          conteudo: string;
+          anexo_url: string | null;
+          metadata: Record<string, unknown> | null;
+          whatsapp_message_id: string | null;
+          lida: boolean;
+          criado_em: string;
+        };
+        Insert: {
+          id?: string;
+          conversation_id: string;
+          sender_type: 'cliente' | 'vendedor' | 'sistema';
+          sender_id?: string | null;
+          tipo?: 'texto' | 'imagem' | 'audio' | 'documento' | 'localizacao' | 'template';
+          conteudo: string;
+          anexo_url?: string | null;
+          metadata?: Record<string, unknown> | null;
+          whatsapp_message_id?: string | null;
+          lida?: boolean;
+          criado_em?: string;
+        };
+        Update: Partial<Database['poxpur']['Tables']['messages']['Insert']>;
+        Relationships: [];
+      };
       notifications: {
         Row: {
           id: string;
@@ -251,6 +313,10 @@ export type Database = {
         | 'pedido_aguardando_fabrica'
         | 'pedido_enviado'
         | 'pedido_concluido';
+      conversation_channel: 'whatsapp' | 'manual';
+      conversation_status: 'aberta' | 'arquivada';
+      message_sender_type: 'cliente' | 'vendedor' | 'sistema';
+      message_type: 'texto' | 'imagem' | 'audio' | 'documento' | 'localizacao' | 'template';
     };
     CompositeTypes: Record<string, never>;
   };
@@ -275,6 +341,19 @@ export type PresenceStatus = Database['poxpur']['Enums']['presence_status'];
 export type OrderStatus = Database['poxpur']['Enums']['order_status'];
 export type PaymentMethod = Database['poxpur']['Enums']['payment_method'];
 export type NotificationType = Database['poxpur']['Enums']['notification_type'];
+export type PoxpurConversation = Database['poxpur']['Tables']['conversations']['Row'];
+export type PoxpurConversationInsert = Database['poxpur']['Tables']['conversations']['Insert'];
+export type PoxpurMessage = Database['poxpur']['Tables']['messages']['Row'];
+export type PoxpurMessageInsert = Database['poxpur']['Tables']['messages']['Insert'];
+export type ConversationChannel = Database['poxpur']['Enums']['conversation_channel'];
+export type ConversationStatus = Database['poxpur']['Enums']['conversation_status'];
+export type MessageSenderType = Database['poxpur']['Enums']['message_sender_type'];
+export type MessageType = Database['poxpur']['Enums']['message_type'];
+
+export type ConversationWithRelations = PoxpurConversation & {
+  customer: Pick<PoxpurCustomer, 'id' | 'nome' | 'telefone' | 'email' | 'cidade' | 'estado' | 'tags' | 'observacoes'> | null;
+  assignee: Pick<PoxpurProfile, 'id' | 'nome' | 'role'> | null;
+};
 
 export type OrderWithRelations = PoxpurOrder & {
   customer: Pick<PoxpurCustomer, 'id' | 'nome' | 'telefone' | 'email'> | null;
