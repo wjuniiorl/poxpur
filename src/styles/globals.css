@@ -56,13 +56,17 @@
     --ring: 84 53% 51%;
   }
 
-  html, body, #root {
+  html,
+  body,
+  #root {
     height: 100vh;
     overflow: hidden;
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased;
-    font-feature-settings: 'rlig' 1, 'calt' 1;
+    @apply bg-background font-sans text-foreground antialiased;
+    font-feature-settings:
+      'rlig' 1,
+      'calt' 1;
   }
 }

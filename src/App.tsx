@@ -1,17 +1,15 @@
 export default function App() {
   return (
-    <div className="h-screen w-screen flex items-center justify-center bg-secondary">
+    <div className="flex h-screen w-screen items-center justify-center bg-secondary">
       <div className="rounded-xl bg-card p-8 shadow-card">
         <h1 className="text-2xl font-bold text-poxpur-navy">
           Pox<span className="text-poxpur-green">x</span>pur Sales Hub
         </h1>
-        <p className="text-muted-foreground mt-2">
-          Identidade visual carregada com sucesso.
-        </p>
-        <button className="mt-4 rounded-xl bg-poxpur-navy hover:bg-poxpur-navy-dark text-white px-4 py-2 transition-colors">
+        <p className="mt-2 text-muted-foreground">Identidade visual carregada com sucesso.</p>
+        <button className="mt-4 rounded-xl bg-poxpur-navy px-4 py-2 text-white transition-colors hover:bg-poxpur-navy-dark">
           Botão primário
         </button>
-        <button className="mt-4 ml-2 rounded-xl bg-poxpur-green hover:bg-poxpur-green-dark text-white px-4 py-2 transition-colors">
+        <button className="ml-2 mt-4 rounded-xl bg-poxpur-green px-4 py-2 text-white transition-colors hover:bg-poxpur-green-dark">
           CTA verde
         </button>
       </div>
