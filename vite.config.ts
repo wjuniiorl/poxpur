@@ -16,8 +16,10 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      // 'prompt' delega o update ao <PWAUpdatePrompt /> (toast com botão Recarregar).
-      // 'autoUpdate' fazia reload automático e brigava com o prompt → loop.
+      // PWA desabilitado temporariamente — kill switch no main.tsx desregistra SW
+      // antigos. Sem isso, navegadores com SW envenenado ficam em loop de cache stale.
+      // Reativar quando estratégia de cache estiver estável.
+      disable: true,
       registerType: 'prompt',
       injectRegister: 'auto',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
