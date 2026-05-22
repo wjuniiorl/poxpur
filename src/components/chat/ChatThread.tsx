@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import {
   MoreVertical,
   ShoppingCart,
@@ -139,10 +139,24 @@ function MessageList({
   customerPhone: string;
 }) {
   const bottomRef = useRef<HTMLDivElement>(null);
+  const prevConversationRef = useRef<string>(conversationId);
+  const lastMessageCountRef = useRef(messages.length);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages.length]);
+  // Scroll instantâneo ao abrir uma conversa diferente (sem animação),
+  // scroll suave ao receber novas mensagens na mesma conversa.
+  useLayoutEffect(() => {
+    const conversationChanged = prevConversationRef.current !== conversationId;
+    const newMessageArrived = messages.length > lastMessageCountRef.current;
+    prevConversationRef.current = conversationId;
+    lastMessageCountRef.current = messages.length;
+
+    if (!bottomRef.current) return;
+    if (conversationChanged) {
+      bottomRef.current.scrollIntoView({ behavior: 'auto', block: 'end' });
+    } else if (newMessageArrived) {
+      bottomRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+  }, [conversationId, messages.length]);
 
   const elements: React.ReactNode[] = [];
   let lastDateLabel = '';

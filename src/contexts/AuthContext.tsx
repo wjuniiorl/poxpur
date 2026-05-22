@@ -92,119 +92,106 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true;
-    // Se onAuthStateChange estabelecer uma sessão antes do timeout do
-    // bootstrap disparar, marcamos esta flag pra que o catch do bootstrap
-    // não destrua a sessão recém-criada (ex: login bem-sucedido durante
-    // um bootstrap stale).
-    let sessionEstablishedByListener = false;
+
+    function clearAuthStorage() {
+      try {
+        if (typeof window === 'undefined' || !window.localStorage) return;
+        const toRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith('sb-')) toRemove.push(k);
+        }
+        for (const k of toRemove) localStorage.removeItem(k);
+      } catch {
+        /* ignore */
+      }
+    }
 
     function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
       return Promise.race([
         p,
-        new Promise<T>((_, rej) =>
-          setTimeout(() => rej(new Error(`bootstrap timeout: ${label}`)), ms),
-        ),
+        new Promise<T>((_, rej) => setTimeout(() => rej(new Error(`timeout: ${label}`)), ms)),
       ]);
     }
 
-    async function bootstrap() {
-      try {
-        const { data } = await withTimeout(supabase.auth.getSession(), 5000, 'getSession');
-        if (!active) return;
-
-        if (!data.session) {
-          if (sessionEstablishedByListener) return;
-          setSession(null);
-          setProfile(null);
-          setStatus('unauthenticated');
-          return;
-        }
-
-        setSession(data.session);
-        const p = await withTimeout(loadProfile(data.session.user.id), 5000, 'loadProfile');
-        if (!active) return;
-
-        if (!p || !p.ativo) {
-          await supabase.auth.signOut();
-          setSession(null);
-          setProfile(null);
-          setStatus('no_profile');
-          toast.error('Esta conta não tem acesso ao Sales Hub. Procure o administrador.');
-        } else {
-          setProfile(p);
-          setStatus('authenticated');
-        }
-      } catch (err) {
-        if (!active) return;
-        // Se o listener já estabeleceu uma sessão fresca (caso de login
-        // bem-sucedido durante o timeout), não destruir.
-        if (sessionEstablishedByListener) {
-          console.warn('[AuthContext] bootstrap timed out, mas listener ja autenticou:', err);
-          return;
-        }
-        console.warn('[AuthContext] bootstrap falhou, limpando sessao:', err);
-        try {
-          if (typeof window !== 'undefined' && window.localStorage) {
-            const toRemove: string[] = [];
-            for (let i = 0; i < localStorage.length; i++) {
-              const k = localStorage.key(i);
-              if (k && k.startsWith('sb-')) toRemove.push(k);
-            }
-            for (const k of toRemove) localStorage.removeItem(k);
-          }
-        } catch {
-          /* ignore */
-        }
-        setSession(null);
-        setProfile(null);
-        setStatus('unauthenticated');
-      }
-    }
-
     purgeStaleAuthStorage();
-    void bootstrap();
 
+    // Confia inteiramente no onAuthStateChange. O Supabase JS v2 emite
+    // INITIAL_SESSION automaticamente após inicialização do client (com a
+    // session do localStorage, se existir). Não precisamos chamar
+    // getSession() separadamente — isso causava race conditions.
     const { data: sub } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       if (!active) return;
+
       setSession(newSession);
 
       if (!newSession) {
         setProfile(null);
-        setStatus('unauthenticated');
         lastUserIdRef.current = null;
-        sessionEstablishedByListener = false;
+        setStatus('unauthenticated');
         return;
       }
 
-      sessionEstablishedByListener = true;
-
-      if (lastUserIdRef.current === newSession.user.id) return;
+      // Evita re-carregar profile se o user é o mesmo (token refresh, etc)
+      if (
+        lastUserIdRef.current === newSession.user.id &&
+        (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED')
+      ) {
+        return;
+      }
       lastUserIdRef.current = newSession.user.id;
 
-      const p = await loadProfile(newSession.user.id);
-      if (!active) return;
+      try {
+        const p = await withTimeout(loadProfile(newSession.user.id), 5000, 'loadProfile');
+        if (!active) return;
 
-      if (!p || !p.ativo) {
-        await supabase.auth.signOut();
-        setProfile(null);
-        setStatus('no_profile');
-        toast.error('Esta conta não tem acesso ao Sales Hub.');
-      } else {
+        if (!p || !p.ativo) {
+          await supabase.auth.signOut();
+          setProfile(null);
+          setStatus('no_profile');
+          toast.error('Esta conta não tem acesso ao Sales Hub.');
+          return;
+        }
+
         setProfile(p);
         setStatus('authenticated');
+
         if (event === 'SIGNED_IN') {
-          await logAudit(p.id, p.email, 'login');
-          await supabase
+          // Fire-and-forget: não bloqueia o status authenticated
+          void logAudit(p.id, p.email, 'login');
+          void supabase
             .from('profiles')
             .update({ ultimo_acesso_em: new Date().toISOString() })
             .eq('id', p.id);
         }
+      } catch (err) {
+        console.warn('[AuthContext] loadProfile falhou:', err);
+        if (!active) return;
+        clearAuthStorage();
+        setSession(null);
+        setProfile(null);
+        setStatus('unauthenticated');
       }
     });
+
+    // Safety net: se o listener nunca disparar (cliente Supabase travado),
+    // após 8s força status='unauthenticated' pra liberar a UI.
+    const safetyTimeout = setTimeout(() => {
+      if (!active) return;
+      setStatus((current) => {
+        if (current !== 'loading') return current;
+        console.warn('[AuthContext] listener nao disparou em 8s — limpando localStorage');
+        clearAuthStorage();
+        setSession(null);
+        setProfile(null);
+        return 'unauthenticated';
+      });
+    }, 8000);
 
     return () => {
       active = false;
       sub.subscription.unsubscribe();
+      clearTimeout(safetyTimeout);
     };
   }, []);
 
