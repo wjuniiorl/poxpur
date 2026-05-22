@@ -3,12 +3,8 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 // Recebe base64 da mídia inbound (do n8n após Evolution descriptografar) e armazena
 // no bucket whatsapp-media/inbound/<phone>/<msgId>.<ext>. Retorna URL pública.
-// Auth via header x-poxpur-secret (verify_jwt=false porque keys novas sb_*
-// não são JWT). Secret deve ser configurada como INBOUND_MEDIA_SECRET no Vault.
-//
-// Body: { base64, mime, ext?, phone, whatsappMessageId }
-// Returns 200: { url: <publicUrl>, path: <storagePath> }
-// Returns 400/401/500: { error: <msg> }
+// Auth: header Authorization Bearer <service_role> validado contra a env
+// SUPABASE_SERVICE_ROLE_KEY (auto-provisionada pelo Supabase).
 
 function sanitize(s: string, fallback: string): string {
   const cleaned = s.replace(/[^a-zA-Z0-9._-]/g, '_');
@@ -53,17 +49,19 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  // Auth via shared secret no header (verify_jwt=false porque keys novas sb_secret_*
-  // não são JWT — auth é feita aqui via INBOUND_MEDIA_SECRET no Vault da função).
-  const expected = Deno.env.get('INBOUND_MEDIA_SECRET');
+  const expected = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   if (!expected) {
-    return new Response(JSON.stringify({ error: 'INBOUND_MEDIA_SECRET nao configurado' }), {
-      status: 500,
-      headers: { 'content-type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ error: 'SUPABASE_SERVICE_ROLE_KEY ausente no edge runtime' }),
+      {
+        status: 500,
+        headers: { 'content-type': 'application/json' },
+      },
+    );
   }
-  const provided = req.headers.get('x-poxpur-secret') || '';
-  if (provided !== expected) {
+  const authHeader = req.headers.get('authorization') || req.headers.get('Authorization') || '';
+  const provided = authHeader.replace(/^Bearer\s+/i, '').trim();
+  if (!provided || provided !== expected) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
       headers: { 'content-type': 'application/json' },
@@ -101,15 +99,14 @@ Deno.serve(async (req: Request) => {
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
-  const serviceRole = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (!supabaseUrl || !serviceRole) {
-    return new Response(JSON.stringify({ error: 'Supabase env vars ausentes' }), {
+  if (!supabaseUrl) {
+    return new Response(JSON.stringify({ error: 'SUPABASE_URL ausente no edge runtime' }), {
       status: 500,
       headers: { 'content-type': 'application/json' },
     });
   }
 
-  const supabase = createClient(supabaseUrl, serviceRole);
+  const supabase = createClient(supabaseUrl, expected);
 
   const cleanPhone = sanitize(phone, 'unknown');
   const cleanMsgId = sanitize(
