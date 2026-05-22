@@ -57,9 +57,13 @@ function MediaContent({ message }: { message: PoxpurMessage }) {
 
   if (tipo === 'audio') {
     return (
-      <div className="mb-1">
-        {/* Audio from WhatsApp — captions not applicable for voice messages */}
-        <audio controls src={anexo_url} className="w-full max-w-xs" />
+      <div className="mb-1 -mx-1">
+        <audio
+          controls
+          preload="metadata"
+          src={anexo_url}
+          className="block h-10 w-[280px] max-w-full"
+        />
       </div>
     );
   }
