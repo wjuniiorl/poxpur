@@ -47,7 +47,7 @@ export default function ChatWhatsApp() {
   };
 
   return (
-    <div className="flex h-full w-full overflow-hidden">
+    <div className="-m-6 flex h-[calc(100%+3rem)] w-[calc(100%+3rem)] overflow-hidden">
       {/* ── Left: Conversation List ─────────────────────────────────────── */}
       <div className="w-80 shrink-0 h-full overflow-hidden">
         <ConversationList selectedId={selectedId} onSelect={handleSelect} />
