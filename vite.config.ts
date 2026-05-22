@@ -3,10 +3,16 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const require = createRequire(import.meta.url);
+const pkg = require('./package.json') as { version: string };
 
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version ?? '0.8.0'),
+  },
   plugins: [
     react(),
     VitePWA({
@@ -58,5 +64,29 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: (id: string) => {
+          if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-') || id.includes('node_modules/victory-')) {
+            return 'recharts';
+          }
+          if (id.includes('node_modules/@supabase/')) {
+            return 'supabase';
+          }
+          if (id.includes('node_modules/@radix-ui/')) {
+            return 'radix';
+          }
+          if (id.includes('node_modules/@tanstack/')) {
+            return 'tanstack';
+          }
+          if (id.includes('node_modules/cmdk')) {
+            return 'cmdk';
+          }
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000,
   },
 });

@@ -128,6 +128,13 @@ export function Sidebar() {
         </DropdownMenu>
       </div>
 
+      {/* Version footer */}
+      {!sidebarCollapsed && (
+        <div className="px-3 py-2 text-[10px] text-white/40 text-center border-t border-white/5">
+          Sales Hub v{__APP_VERSION__}
+        </div>
+      )}
+
       {/* Collapse toggle */}
       <Button
         variant="ghost"
