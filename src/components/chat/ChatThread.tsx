@@ -21,6 +21,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -91,6 +92,9 @@ function SimulateDialog({
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle className="text-sm">Simular mensagem do cliente</DialogTitle>
+          <DialogDescription className="sr-only">
+            Simule o recebimento de uma mensagem do cliente para fins de demonstração.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
           <Label className="text-xs text-muted-foreground">

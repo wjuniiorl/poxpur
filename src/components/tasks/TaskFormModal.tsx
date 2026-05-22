@@ -5,6 +5,7 @@ import { z } from 'zod';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -144,6 +145,11 @@ export function TaskFormModal({ open, onOpenChange, task, defaultStatus }: TaskF
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Editar tarefa' : 'Nova tarefa'}</DialogTitle>
+          <DialogDescription className="sr-only">
+            {isEdit
+              ? 'Edite os dados da tarefa selecionada.'
+              : 'Preencha os dados para criar uma nova tarefa.'}
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>

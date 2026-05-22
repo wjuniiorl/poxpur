@@ -5,6 +5,7 @@ import { z } from 'zod';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -137,6 +138,11 @@ export function ProductFormModal({ open, onOpenChange, product }: ProductFormMod
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Editar produto' : 'Novo produto'}</DialogTitle>
+          <DialogDescription className="sr-only">
+            {isEdit
+              ? 'Edite os dados do produto selecionado.'
+              : 'Preencha os dados para cadastrar um novo produto no catálogo.'}
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>

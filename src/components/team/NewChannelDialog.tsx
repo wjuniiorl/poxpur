@@ -4,6 +4,7 @@ import { z } from 'zod';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -61,6 +62,9 @@ export function NewChannelDialog({ open, onOpenChange }: NewChannelDialogProps) 
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
           <DialogTitle>Novo canal</DialogTitle>
+          <DialogDescription className="sr-only">
+            Crie um novo canal de comunicação para a equipe.
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>

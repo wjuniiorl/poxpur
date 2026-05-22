@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useCreateOrder, useSellers } from '@/hooks/useOrders';
 import { useCreateCustomer } from '@/hooks/useCustomers';
 import { useAuth } from '@/hooks/useAuth';
@@ -209,6 +209,10 @@ export function NewOrderFromChatModal({ open, onOpenChange, conversation }: NewO
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-2xl max-h-[92vh] overflow-hidden flex flex-col p-0">
+        <DialogTitle className="sr-only">Novo Pedido — {customerDisplayName}</DialogTitle>
+        <DialogDescription className="sr-only">
+          Crie um pedido vinculado a esta conversa do WhatsApp.
+        </DialogDescription>
         {/* ── Header gradient ─────────────────────────────────────────── */}
         <div className="bg-gradient-to-r from-poxpur-navy to-poxpur-green-dark p-4 flex items-start justify-between shrink-0">
           <div className="flex items-center gap-3">

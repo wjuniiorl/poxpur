@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -112,6 +113,9 @@ function InviteDialog({ open, onClose }: { open: boolean; onClose: () => void })
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle>Convidar usuário</DialogTitle>
+          <DialogDescription className="sr-only">
+            Envie um convite por email para adicionar um novo usuário ao sistema.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           <div className="space-y-2">

@@ -5,6 +5,7 @@ import { z } from 'zod';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -132,6 +133,11 @@ export function CustomerFormModal({ open, onOpenChange, customer }: CustomerForm
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Editar cliente' : 'Novo cliente'}</DialogTitle>
+          <DialogDescription className="sr-only">
+            {isEdit
+              ? 'Edite as informações do cliente selecionado.'
+              : 'Preencha os dados para cadastrar um novo cliente.'}
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
