@@ -137,13 +137,13 @@ export function MyProfileSection() {
                   </FormItem>
                 )}
               />
-              <FormItem>
-                <FormLabel>E-mail</FormLabel>
+              <div className="space-y-2">
+                <label className="text-sm font-medium leading-none">E-mail</label>
                 <Input value={profile.email} disabled />
-                <FormDescription>Não editável aqui.</FormDescription>
-              </FormItem>
-              <FormItem>
-                <FormLabel>Papel</FormLabel>
+                <p className="text-xs text-muted-foreground">Não editável aqui.</p>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium leading-none">Papel</label>
                 <div className="flex h-10 items-center">
                   <Badge
                     className={
@@ -155,7 +155,7 @@ export function MyProfileSection() {
                     {profile.role === 'admin' ? 'Administrador' : 'Vendedor'}
                   </Badge>
                 </div>
-              </FormItem>
+              </div>
               <FormField
                 control={form.control}
                 name="telefone"
