@@ -2,7 +2,26 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
-import type { OrderStatus, OrderWithRelations } from '@/types/database';
+import type { OrderStatus, OrderWithRelations, PoxpurProfile } from '@/types/database';
+
+// Helper: PostgREST não joina orders.seller_id (FK auth.users) com profiles automaticamente.
+// Fetch separado dos profiles dos sellers e faz merge client-side.
+async function mergeSellers<T extends { seller_id: string; seller?: unknown }>(
+  rows: T[],
+): Promise<(T & { seller: Pick<PoxpurProfile, 'id' | 'nome' | 'role'> | null })[]> {
+  const sellerIds = [...new Set(rows.map((r) => r.seller_id).filter(Boolean))] as string[];
+  const profilesMap: Record<string, Pick<PoxpurProfile, 'id' | 'nome' | 'role'>> = {};
+  if (sellerIds.length > 0) {
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, nome, role')
+      .in('id', sellerIds);
+    for (const p of data ?? []) {
+      profilesMap[p.id] = p as Pick<PoxpurProfile, 'id' | 'nome' | 'role'>;
+    }
+  }
+  return rows.map((r) => ({ ...r, seller: profilesMap[r.seller_id] ?? null }));
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -45,8 +64,7 @@ export function useOrders(filters?: OrderFilters) {
         .from('orders')
         .select(
           `*,
-          customer:customers!orders_customer_id_fkey(id, nome, telefone, email),
-          seller:profiles!orders_seller_id_fkey(id, nome, role)`,
+          customer:customers!orders_customer_id_fkey(id, nome, telefone, email)`,
         )
         .order('criado_em', { ascending: false });
 
@@ -77,7 +95,10 @@ export function useOrders(filters?: OrderFilters) {
       const { data, error } = await q;
       if (error) throw error;
 
-      const typed = data as unknown as OrderWithRelations[];
+      const merged = await mergeSellers(
+        (data as unknown as (OrderWithRelations & { seller_id: string })[]) ?? [],
+      );
+      const typed = merged as unknown as OrderWithRelations[];
 
       // Client-side search filter (by numero or customer name)
       if (filters?.search) {
@@ -106,13 +127,14 @@ export function useOrder(id: string | undefined) {
         .select(
           `*,
           customer:customers!orders_customer_id_fkey(id, nome, telefone, email),
-          seller:profiles!orders_seller_id_fkey(id, nome, role),
           items:order_items(*, product:products!order_items_product_id_fkey(id, nome, sku))`,
         )
         .eq('id', id!)
         .maybeSingle();
       if (error) throw error;
-      return data as unknown as OrderWithRelations | null;
+      if (!data) return null;
+      const merged = await mergeSellers([data as unknown as OrderWithRelations & { seller_id: string }]);
+      return merged[0] as unknown as OrderWithRelations;
     },
   });
 }
@@ -162,14 +184,14 @@ export function useCreateOrder() {
         .select(
           `*,
           customer:customers!orders_customer_id_fkey(id, nome, telefone, email),
-          seller:profiles!orders_seller_id_fkey(id, nome, role),
           items:order_items(*, product:products!order_items_product_id_fkey(id, nome, sku))`,
         )
         .eq('id', orderData.id)
         .maybeSingle();
       if (refreshError) throw refreshError;
-
-      return refreshed as unknown as OrderWithRelations;
+      if (!refreshed) throw new Error('Pedido criado mas não encontrado');
+      const merged = await mergeSellers([refreshed as unknown as OrderWithRelations & { seller_id: string }]);
+      return merged[0] as unknown as OrderWithRelations;
     },
     onSuccess: (data) => {
       void qc.invalidateQueries({ queryKey: ['orders'] });
