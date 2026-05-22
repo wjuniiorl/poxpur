@@ -1,27 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
+import { mergeSellers } from '@/lib/profileMerge';
 import { useAuth } from '@/hooks/useAuth';
-import type { OrderStatus, OrderWithRelations, PoxpurProfile } from '@/types/database';
-
-// Helper: PostgREST não joina orders.seller_id (FK auth.users) com profiles automaticamente.
-// Fetch separado dos profiles dos sellers e faz merge client-side.
-async function mergeSellers<T extends { seller_id: string; seller?: unknown }>(
-  rows: T[],
-): Promise<(T & { seller: Pick<PoxpurProfile, 'id' | 'nome' | 'role'> | null })[]> {
-  const sellerIds = [...new Set(rows.map((r) => r.seller_id).filter(Boolean))] as string[];
-  const profilesMap: Record<string, Pick<PoxpurProfile, 'id' | 'nome' | 'role'>> = {};
-  if (sellerIds.length > 0) {
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, nome, role')
-      .in('id', sellerIds);
-    for (const p of data ?? []) {
-      profilesMap[p.id] = p as Pick<PoxpurProfile, 'id' | 'nome' | 'role'>;
-    }
-  }
-  return rows.map((r) => ({ ...r, seller: profilesMap[r.seller_id] ?? null }));
-}
+import type { OrderStatus, OrderWithRelations } from '@/types/database';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
+import { mergeAssignees as mergeAssigneesGeneric } from '@/lib/profileMerge';
 import { useAuth } from '@/hooks/useAuth';
-import type { ConversationWithRelations, PoxpurProfile } from '@/types/database';
+import type { ConversationWithRelations } from '@/types/database';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -19,28 +20,11 @@ export const conversationsKey = (filters?: ConversationFilters) =>
   ['conversations', filters ?? {}] as const;
 export const conversationKey = (id: string) => ['conversation', id] as const;
 
-// ─── Helper: merge assignees ──────────────────────────────────────────────────
-
 async function mergeAssignees(
   rows: (Omit<ConversationWithRelations, 'assignee'> & { assignee?: unknown })[],
 ): Promise<ConversationWithRelations[]> {
-  const assigneeIds = [...new Set(rows.map((r) => r.assigned_to).filter(Boolean))] as string[];
-
-  const profilesMap: Record<string, Pick<PoxpurProfile, 'id' | 'nome' | 'role'>> = {};
-  if (assigneeIds.length > 0) {
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, nome, role')
-      .in('id', assigneeIds);
-    for (const p of data ?? []) {
-      profilesMap[p.id] = p as Pick<PoxpurProfile, 'id' | 'nome' | 'role'>;
-    }
-  }
-
-  return rows.map((r) => ({
-    ...r,
-    assignee: r.assigned_to ? (profilesMap[r.assigned_to] ?? null) : null,
-  })) as ConversationWithRelations[];
+  const merged = await mergeAssigneesGeneric(rows);
+  return merged as unknown as ConversationWithRelations[];
 }
 
 // ─── List Conversations ───────────────────────────────────────────────────────
@@ -285,15 +269,14 @@ export function useMarkConversationRead() {
 
   return useMutation({
     mutationFn: async ({ id }: { id: string }) => {
-      // Mark all client messages as read
-      await supabase
+      const { error: messagesError } = await supabase
         .from('messages')
         .update({ lida: true })
         .eq('conversation_id', id)
         .eq('sender_type', 'cliente')
         .eq('lida', false);
+      if (messagesError) throw messagesError;
 
-      // Reset unread count
       const { error } = await supabase
         .from('conversations')
         .update({ nao_lidas: 0 })

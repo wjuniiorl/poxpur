@@ -1,24 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { mergeSellers } from '@/lib/profileMerge';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
-import type { OrderWithRelations, PoxpurProfile } from '@/types/database';
-
-// Helper: merge sellers (auth.users → profiles) client-side.
-// PostgREST não joina diretamente porque orders.seller_id é FK pra auth.users.
-async function mergeSellersDS<T extends { seller_id: string }>(
-  rows: T[],
-): Promise<(T & { seller: Pick<PoxpurProfile, 'id' | 'nome' | 'role'> | null })[]> {
-  const ids = [...new Set(rows.map((r) => r.seller_id).filter(Boolean))] as string[];
-  const map: Record<string, Pick<PoxpurProfile, 'id' | 'nome' | 'role'>> = {};
-  if (ids.length > 0) {
-    const { data } = await supabase.from('profiles').select('id, nome, role').in('id', ids);
-    for (const p of data ?? []) {
-      map[p.id] = p as Pick<PoxpurProfile, 'id' | 'nome' | 'role'>;
-    }
-  }
-  return rows.map((r) => ({ ...r, seller: map[r.seller_id] ?? null }));
-}
+import type { OrderWithRelations } from '@/types/database';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -93,7 +78,7 @@ export function useDashboardStats(): DashboardData {
         .gte('criado_em', startOfMonth())
         .order('criado_em', { ascending: false });
       if (error) throw error;
-      return await mergeSellersDS(
+      return await mergeSellers(
         (data as unknown as (OrderWithRelations & { seller_id: string })[]) ?? [],
       );
     },
@@ -113,7 +98,7 @@ export function useDashboardStats(): DashboardData {
         .order('criado_em', { ascending: false })
         .limit(5);
       if (error) throw error;
-      return await mergeSellersDS(
+      return await mergeSellers(
         (data as unknown as (OrderWithRelations & { seller_id: string })[]) ?? [],
       );
     },

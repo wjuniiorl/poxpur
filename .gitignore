@@ -2,9 +2,17 @@ node_modules
 @/
 dist
 dist-ssr
+
+# Env vars (NUNCA commitar)
 .env
 .env.local
 .env.*.local
+
+# Workflows n8n com credenciais hardcoded (versões "PRONTO" são geradas localmente)
+docs/integrations/**/*-PRONTO.json
+docs/integrations/**/*-FINAL.json
+
+# Caches
 *.log
 .DS_Store
 .vite
@@ -14,3 +22,6 @@ dist-ssr
 *.tsbuildinfo
 .eslintcache
 coverage
+
+# Claude
+.claude/settings.local.json

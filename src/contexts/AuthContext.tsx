@@ -97,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      if (lastUserIdRef.current === newSession.user.id && profile) return;
+      if (lastUserIdRef.current === newSession.user.id) return;
       lastUserIdRef.current = newSession.user.id;
 
       const p = await loadProfile(newSession.user.id);
@@ -125,7 +125,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       active = false;
       sub.subscription.unsubscribe();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const signIn: AuthContextValue['signIn'] = async (email, password) => {

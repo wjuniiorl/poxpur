@@ -20,15 +20,23 @@ export function InternalComposer({ channelId }: InternalComposerProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sendMessage = useSendInternalMessage();
 
-  // Fetch profiles once for mention resolution
   useEffect(() => {
-    void supabase
-      .from('profiles')
-      .select('id, nome')
-      .eq('ativo', true)
-      .then(({ data }) => {
-        if (data) setProfiles(data as Pick<PoxpurProfile, 'id' | 'nome'>[]);
-      });
+    let active = true;
+    void (async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, nome')
+        .eq('ativo', true);
+      if (!active) return;
+      if (error) {
+        console.error('Failed to load profiles for mentions:', error);
+        return;
+      }
+      if (data) setProfiles(data as Pick<PoxpurProfile, 'id' | 'nome'>[]);
+    })();
+    return () => {
+      active = false;
+    };
   }, []);
 
   // Auto-grow textarea
