@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Plus,
   Search,
@@ -102,18 +103,20 @@ function SkeletonKanban() {
 
 function EmptyState({ onNewOrder }: { onNewOrder: () => void }) {
   return (
-    <div className="grid h-64 place-items-center">
-      <div className="space-y-3 text-center">
-        <Inbox className="mx-auto h-16 w-16 text-muted-foreground/30" />
-        <p className="text-lg font-medium text-muted-foreground">Nenhum pedido ainda</p>
+    <div className="grid h-full min-h-64 place-items-center">
+      <div className="max-w-sm space-y-3 text-center">
+        <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-poxpur-green/10">
+          <Inbox className="h-8 w-8 text-poxpur-green" />
+        </div>
+        <h3 className="font-semibold text-poxpur-navy">Nenhum pedido aqui ainda</h3>
         <p className="text-sm text-muted-foreground">
-          Clique em Novo Pedido para começar
+          Crie seu primeiro pedido e acompanhe desde a aprovação até a entrega.
         </p>
         <Button
           onClick={onNewOrder}
           className="bg-poxpur-green text-white hover:bg-poxpur-green-dark"
         >
-          <Plus className="h-4 w-4" />
+          <Plus className="h-4 w-4 mr-2" />
           Novo Pedido
         </Button>
       </div>
@@ -326,6 +329,7 @@ function TableView({
 
 export default function Orders() {
   const isAdmin = useIsAdmin();
+  const [params, setParams] = useSearchParams();
 
   // ── Filters state ──
   const [search, setSearch] = useState('');
@@ -334,10 +338,21 @@ export default function Orders() {
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodOption>({ label: 'Todos', days: null });
   const [viewMode, setViewMode] = useState<ViewMode>('tabela');
 
-  // ── Modals state ──
-  const [newOrderOpen, setNewOrderOpen] = useState(false);
+  // ── Modals state — initialize from ?new=1 search param ──
+  const newRequested = params.get('new') === '1';
+  const [newOrderOpen, setNewOrderOpen] = useState(newRequested);
   const [detailOrderId, setDetailOrderId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+
+  // Clean up ?new=1 from URL after reading it
+  useEffect(() => {
+    if (newRequested) {
+      params.delete('new');
+      setParams(params, { replace: true });
+    }
+    // Only run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Data ──
   const { data: orders = [], isLoading } = useOrders({

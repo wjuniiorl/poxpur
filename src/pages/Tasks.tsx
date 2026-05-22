@@ -1,10 +1,10 @@
-import { useState, useMemo } from 'react';
-import { Plus, LayoutGrid, List, Search, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Plus, LayoutGrid, List, Search, ChevronUp, ChevronDown, ChevronsUpDown, ClipboardList } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { fmtDate } from '@/lib/format';
 import { useTasks, useTasksRealtime } from '@/hooks/useTasks';
@@ -70,13 +70,27 @@ function KanbanSkeleton() {
 export default function Tasks() {
   const isAdmin = useIsAdmin();
   const { data: sellers = [] } = useSellers();
+  const [params, setParams] = useSearchParams();
+  const newRequested = params.get('new') === '1';
+  const cleanedRef = useRef(false);
 
   // View state
   const [view, setView] = useState<'kanban' | 'lista'>('kanban');
-  const [formOpen, setFormOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(newRequested);
   const [formDefaultStatus, setFormDefaultStatus] = useState<TaskStatus>('a_fazer');
   const [selectedTask, setSelectedTask] = useState<TaskWithRelations | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+
+  // Clean up ?new=1 from URL after reading it
+  useEffect(() => {
+    if (newRequested && !cleanedRef.current) {
+      cleanedRef.current = true;
+      params.delete('new');
+      setParams(params, { replace: true });
+    }
+    // Only run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Filter state
   const [search, setSearch] = useState('');
@@ -370,24 +384,33 @@ export default function Tasks() {
         ) : (
           /* ── Lista ── */
           sortedTasks.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                <p className="text-base font-medium text-muted-foreground">
-                  Nenhuma tarefa ainda
+            <div className="grid h-full min-h-64 place-items-center">
+              <div className="max-w-sm space-y-3 text-center">
+                <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-poxpur-green/10">
+                  <ClipboardList className="h-8 w-8 text-poxpur-green" />
+                </div>
+                <h3 className="font-semibold text-poxpur-navy">
+                  {search || statusFilter.length > 0 || priorityFilter.length > 0
+                    ? 'Nenhuma tarefa com esses filtros'
+                    : 'Comece criando sua primeira tarefa'}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {search || statusFilter.length > 0 || priorityFilter.length > 0
+                    ? 'Tente ajustar os filtros ou a busca.'
+                    : 'Organize o trabalho da equipe com tarefas, prioridades e prazos.'}
                 </p>
-                <p className="text-sm text-muted-foreground/60 mt-1">
-                  Crie a primeira clicando em "+ Nova tarefa"
-                </p>
-                <Button
-                  size="sm"
-                  className="mt-4 bg-poxpur-green hover:bg-poxpur-green-dark text-white gap-1.5"
-                  onClick={() => openNewTask()}
-                >
-                  <Plus className="h-4 w-4" />
-                  Nova tarefa
-                </Button>
-              </CardContent>
-            </Card>
+                {!search && statusFilter.length === 0 && priorityFilter.length === 0 && (
+                  <Button
+                    size="sm"
+                    className="bg-poxpur-green hover:bg-poxpur-green-dark text-white gap-1.5"
+                    onClick={() => openNewTask()}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Nova tarefa
+                  </Button>
+                )}
+              </div>
+            </div>
           ) : (
             <div className="rounded-lg border overflow-hidden bg-background">
               <table className="w-full text-sm">

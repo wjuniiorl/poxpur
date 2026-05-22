@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Plus, Search, Pencil, Trash2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Plus, Search, Pencil, Trash2, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -95,14 +96,28 @@ function DeleteConfirmDialog({
 export default function Customers() {
   const { data: customers, isLoading } = useCustomers();
   const isAdmin = useIsAdmin();
+  const [params, setParams] = useSearchParams();
 
+  const newRequested = params.get('new') === '1';
   const [search, setSearch] = useState('');
-  const [formOpen, setFormOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(newRequested);
   const [editCustomer, setEditCustomer] = useState<PoxpurCustomer | null>(null);
   const [detailCustomer, setDetailCustomer] = useState<PoxpurCustomer | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<PoxpurCustomer | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const cleanedRef = useRef(false);
+
+  // Clean up ?new=1 from URL after reading it
+  useEffect(() => {
+    if (newRequested && !cleanedRef.current) {
+      cleanedRef.current = true;
+      params.delete('new');
+      setParams(params, { replace: true });
+    }
+    // Only run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const filtered = (customers ?? []).filter((c) =>
     c.nome.toLowerCase().includes(search.toLowerCase()),
@@ -165,19 +180,20 @@ export default function Customers() {
       <Card className="flex-1 overflow-hidden">
         <CardContent className="h-full overflow-auto p-0">
           {!isLoading && filtered.length === 0 && !search ? (
-            <div className="grid h-64 place-items-center">
-              <div className="space-y-3 text-center">
-                <p className="text-lg font-medium text-muted-foreground">
-                  Nenhum cliente ainda
-                </p>
+            <div className="grid h-full min-h-64 place-items-center">
+              <div className="max-w-sm space-y-3 text-center">
+                <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-poxpur-green/10">
+                  <Building2 className="h-8 w-8 text-poxpur-green" />
+                </div>
+                <h3 className="font-semibold text-poxpur-navy">Comece adicionando seu primeiro cliente</h3>
                 <p className="text-sm text-muted-foreground">
-                  Clique em Novo cliente pra começar
+                  Cadastre clientes para vincular pedidos, conversas de WhatsApp e tarefas.
                 </p>
                 <Button
                   onClick={handleNewCustomer}
                   className="bg-poxpur-green text-white hover:bg-poxpur-green-dark"
                 >
-                  <Plus className="h-4 w-4" />
+                  <Plus className="h-4 w-4 mr-2" />
                   Novo cliente
                 </Button>
               </div>

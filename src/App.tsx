@@ -6,6 +6,7 @@ import { queryClient } from '@/lib/queryClient';
 import { AppRoutes } from './routes';
 import { OfflineBanner } from '@/components/common/OfflineBanner';
 import { PWAUpdatePrompt } from '@/components/common/PWAUpdatePrompt';
+import { CommandPalette } from '@/components/common/CommandPalette';
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
               <AppRoutes />
             </div>
           </div>
+          <CommandPalette />
           <PWAUpdatePrompt />
           <Toaster richColors position="top-right" />
         </AuthProvider>
