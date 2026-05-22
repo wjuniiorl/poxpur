@@ -19,7 +19,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Search } from 'lucide-react';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { ConnectionStatus } from '@/components/layout/ConnectionStatus';
+import { useCommandPalette } from '@/stores/commandPaletteStore';
 
 const routeLabels: Record<string, string> = {
   '/dashboard': 'Dashboard',
@@ -37,6 +40,7 @@ export function Header() {
   const { theme, toggleTheme } = useUiStore();
   const location = useLocation();
   const pageTitle = routeLabels[location.pathname] ?? 'Sales Hub';
+  const openPalette = useCommandPalette((s) => s.setOpen);
 
   const initials = (profile?.nome ?? '?')
     .split(' ')
@@ -52,6 +56,21 @@ export function Header() {
           {pageTitle}
         </h1>
       </div>
+
+      {/* Command palette trigger */}
+      <button
+        onClick={() => openPalette(true)}
+        className="hidden md:flex items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted transition-colors"
+        aria-label="Abrir paleta de comandos"
+      >
+        <Search className="h-3.5 w-3.5" />
+        <span>Buscar...</span>
+        <kbd className="ml-2 rounded border bg-background px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+          Ctrl+K
+        </kbd>
+      </button>
+
+      <ConnectionStatus />
 
       <NotificationBell />
 
