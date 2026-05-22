@@ -15,6 +15,7 @@ export type AuthContextValue = {
   signOut: () => Promise<void>;
   requestPasswordReset: (email: string) => Promise<{ error?: string }>;
   updatePassword: (newPassword: string) => Promise<{ error?: string }>;
+  refreshProfile: () => Promise<void>;
 };
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
@@ -151,9 +152,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return {};
   };
 
+  const refreshProfile: AuthContextValue['refreshProfile'] = async () => {
+    if (!session) return;
+    const p = await loadProfile(session.user.id);
+    if (p) setProfile(p);
+  };
+
   return (
     <AuthContext.Provider
-      value={{ session, profile, status, signIn, signOut, requestPasswordReset, updatePassword }}
+      value={{
+        session,
+        profile,
+        status,
+        signIn,
+        signOut,
+        requestPasswordReset,
+        updatePassword,
+        refreshProfile,
+      }}
     >
       {children}
     </AuthContext.Provider>

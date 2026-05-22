@@ -1,5 +1,6 @@
 import { useSearchParams } from 'react-router-dom';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { MyProfileSection } from './MyProfileSection';
 import { CompanyProfileSection } from './CompanyProfileSection';
 import { ProductsCatalogSection } from './ProductsCatalogSection';
 import { UsersSection } from './UsersSection';
@@ -8,6 +9,7 @@ import { AuditLogSection } from './AuditLogSection';
 // ─── Tab config ───────────────────────────────────────────────────────────────
 
 const TABS = [
+  { value: 'perfil', label: 'Meu Perfil' },
   { value: 'empresa', label: 'Empresa' },
   { value: 'catalogo', label: 'Catálogo' },
   { value: 'usuarios', label: 'Usuários' },
@@ -25,7 +27,7 @@ function isValidTab(v: string | null): v is TabValue {
 export function SettingsTabs() {
   const [searchParams, setSearchParams] = useSearchParams();
   const rawTab = searchParams.get('tab');
-  const activeTab: TabValue = isValidTab(rawTab) ? rawTab : 'empresa';
+  const activeTab: TabValue = isValidTab(rawTab) ? rawTab : 'perfil';
 
   const handleTabChange = (value: string) => {
     setSearchParams({ tab: value });
@@ -40,6 +42,10 @@ export function SettingsTabs() {
           </TabsTrigger>
         ))}
       </TabsList>
+
+      <TabsContent value="perfil">
+        <MyProfileSection />
+      </TabsContent>
 
       <TabsContent value="empresa">
         <CompanyProfileSection />
