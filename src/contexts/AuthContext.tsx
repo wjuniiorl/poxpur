@@ -92,6 +92,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true;
+    // Se onAuthStateChange estabelecer uma sessão antes do timeout do
+    // bootstrap disparar, marcamos esta flag pra que o catch do bootstrap
+    // não destrua a sessão recém-criada (ex: login bem-sucedido durante
+    // um bootstrap stale).
+    let sessionEstablishedByListener = false;
 
     function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
       return Promise.race([
@@ -108,6 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!active) return;
 
         if (!data.session) {
+          if (sessionEstablishedByListener) return;
           setSession(null);
           setProfile(null);
           setStatus('unauthenticated');
@@ -129,10 +135,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setStatus('authenticated');
         }
       } catch (err) {
-        console.warn('[AuthContext] bootstrap falhou, limpando sessao:', err);
         if (!active) return;
-        // Limpa qualquer token sb-*-auth-token do localStorage (mais agressivo
-        // que signOut, que tambem chama API e pode travar de novo).
+        // Se o listener já estabeleceu uma sessão fresca (caso de login
+        // bem-sucedido durante o timeout), não destruir.
+        if (sessionEstablishedByListener) {
+          console.warn('[AuthContext] bootstrap timed out, mas listener ja autenticou:', err);
+          return;
+        }
+        console.warn('[AuthContext] bootstrap falhou, limpando sessao:', err);
         try {
           if (typeof window !== 'undefined' && window.localStorage) {
             const toRemove: string[] = [];
@@ -162,8 +172,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile(null);
         setStatus('unauthenticated');
         lastUserIdRef.current = null;
+        sessionEstablishedByListener = false;
         return;
       }
+
+      sessionEstablishedByListener = true;
 
       if (lastUserIdRef.current === newSession.user.id) return;
       lastUserIdRef.current = newSession.user.id;
