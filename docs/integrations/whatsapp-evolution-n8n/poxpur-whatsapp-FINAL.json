@@ -64,42 +64,38 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "https://xeondnsyfhhxkdpugmap.supabase.co/functions/v1/whatsapp-inbound",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "httpHeaderAuth",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
+        "operation": "create",
+        "tableId": "rpc/poxpur_inbound_reaction",
+        "dataToSend": "defineBelow",
+        "fieldsUi": {
+          "fieldValues": [
             {
-              "name": "Content-Type",
-              "value": "application/json"
+              "fieldId": "p_from_phone",
+              "fieldValue": "={{ $json.telefone }}"
             },
             {
-              "name": "apikey",
-              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhlb25kbnN5ZmhoeGtkcHVnbWFwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTM5Mzg0NSwiZXhwIjoyMDk0OTY5ODQ1fQ.gb5LHubHbGPjVmixTMV5uO6GyNyCk7H-GANKy8aXscQ"
+              "fieldId": "p_reacted_message_id",
+              "fieldValue": "={{ $json.reactedMessageId }}"
+            },
+            {
+              "fieldId": "p_emoji",
+              "fieldValue": "={{ $json.reactionEmoji }}"
             }
           ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ kind: 'reaction', reactedMessageId: $json.reactedMessageId, emoji: $json.reactionEmoji, fromPhone: $json.telefone }) }}",
-        "options": {
-          "timeout": 10000
         }
       },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
       "position": [
         -208,
         1344
       ],
       "id": "fefac265-75b5-4803-8a4e-567168b1c5ad",
-      "name": "Edge: Reação",
+      "name": "RPC: Inbound Reação",
       "credentials": {
-        "httpHeaderAuth": {
-          "id": "obpgtPyfWgkw33Da",
-          "name": "w.juniiorl"
+        "supabaseApi": {
+          "id": "HVxZgBETXAAzUiKt",
+          "name": "Poxpur"
         }
       }
     },
@@ -136,42 +132,58 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "https://xeondnsyfhhxkdpugmap.supabase.co/functions/v1/whatsapp-inbound",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "httpHeaderAuth",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
+        "operation": "create",
+        "tableId": "rpc/poxpur_inbound_message",
+        "dataToSend": "defineBelow",
+        "fieldsUi": {
+          "fieldValues": [
             {
-              "name": "Content-Type",
-              "value": "application/json"
+              "fieldId": "p_from_phone",
+              "fieldValue": "={{ $json.telefone }}"
             },
             {
-              "name": "apikey",
-              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhlb25kbnN5ZmhoeGtkcHVnbWFwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTM5Mzg0NSwiZXhwIjoyMDk0OTY5ODQ1fQ.gb5LHubHbGPjVmixTMV5uO6GyNyCk7H-GANKy8aXscQ"
+              "fieldId": "p_from_name",
+              "fieldValue": "={{ $json.pushName }}"
+            },
+            {
+              "fieldId": "p_text",
+              "fieldValue": "={{ $json.text }}"
+            },
+            {
+              "fieldId": "p_type",
+              "fieldValue": "={{ $json.type }}"
+            },
+            {
+              "fieldId": "p_whatsapp_message_id",
+              "fieldValue": "={{ $json.whatsappMessageId }}"
+            },
+            {
+              "fieldId": "p_media_url",
+              "fieldValue": "={{ $json.mediaUrl }}"
+            },
+            {
+              "fieldId": "p_media_mime",
+              "fieldValue": "={{ $json.mediaMime }}"
+            },
+            {
+              "fieldId": "p_media_filename",
+              "fieldValue": "={{ $json.mediaFilename }}"
             }
           ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ kind: 'message', fromPhone: $json.telefone, fromName: $json.pushName, text: $json.text, type: $json.type, whatsappMessageId: $json.whatsappMessageId, mediaUrl: $json.mediaUrl, mediaMime: $json.mediaMime, mediaFilename: $json.mediaFilename }) }}",
-        "options": {
-          "timeout": 10000
         }
       },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
       "position": [
         16,
         1536
       ],
       "id": "03fb2745-147b-4d0d-940a-20c33b8b2468",
-      "name": "Edge: Mensagem",
+      "name": "RPC: Inbound Mensagem",
       "credentials": {
-        "httpHeaderAuth": {
-          "id": "obpgtPyfWgkw33Da",
-          "name": "w.juniiorl"
+        "supabaseApi": {
+          "id": "HVxZgBETXAAzUiKt",
+          "name": "Poxpur"
         }
       }
     },
@@ -848,7 +860,7 @@
       "main": [
         [
           {
-            "node": "Edge: Reação",
+            "node": "RPC: Inbound Reação",
             "type": "main",
             "index": 0
           }
@@ -866,7 +878,7 @@
       "main": [
         [
           {
-            "node": "Edge: Mensagem",
+            "node": "RPC: Inbound Mensagem",
             "type": "main",
             "index": 0
           }
@@ -1089,5 +1101,5 @@
     "templateCredsSetupCompleted": true,
     "instanceId": "7ea8bfc4db8eaa57e96af3b55624e6f4a4ee8c7e80aecd46d02cc265c3a96a5e"
   },
-  "name": "Poxpur — WhatsApp + Email (nodes Supabase nativos)"
+  "name": "Poxpur — WhatsApp + Email (100% nodes Supabase nativos)"
 }
