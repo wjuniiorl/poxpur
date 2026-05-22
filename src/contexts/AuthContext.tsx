@@ -58,30 +58,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let active = true;
 
-    async function bootstrap() {
-      const { data } = await supabase.auth.getSession();
-      if (!active) return;
+    function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+      return Promise.race([
+        p,
+        new Promise<T>((_, rej) =>
+          setTimeout(() => rej(new Error(`bootstrap timeout: ${label}`)), ms),
+        ),
+      ]);
+    }
 
-      if (!data.session) {
+    async function bootstrap() {
+      try {
+        const { data } = await withTimeout(supabase.auth.getSession(), 5000, 'getSession');
+        if (!active) return;
+
+        if (!data.session) {
+          setSession(null);
+          setProfile(null);
+          setStatus('unauthenticated');
+          return;
+        }
+
+        setSession(data.session);
+        const p = await withTimeout(loadProfile(data.session.user.id), 5000, 'loadProfile');
+        if (!active) return;
+
+        if (!p || !p.ativo) {
+          await supabase.auth.signOut();
+          setSession(null);
+          setProfile(null);
+          setStatus('no_profile');
+          toast.error('Esta conta não tem acesso ao Sales Hub. Procure o administrador.');
+        } else {
+          setProfile(p);
+          setStatus('authenticated');
+        }
+      } catch (err) {
+        console.warn('[AuthContext] bootstrap falhou, limpando sessao:', err);
+        if (!active) return;
+        try {
+          await supabase.auth.signOut();
+        } catch {
+          /* ignore — local cleanup best-effort */
+        }
+        if (!active) return;
         setSession(null);
         setProfile(null);
         setStatus('unauthenticated');
-        return;
-      }
-
-      setSession(data.session);
-      const p = await loadProfile(data.session.user.id);
-      if (!active) return;
-
-      if (!p || !p.ativo) {
-        await supabase.auth.signOut();
-        setSession(null);
-        setProfile(null);
-        setStatus('no_profile');
-        toast.error('Esta conta não tem acesso ao Sales Hub. Procure o administrador.');
-      } else {
-        setProfile(p);
-        setStatus('authenticated');
       }
     }
 
