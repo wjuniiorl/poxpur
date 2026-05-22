@@ -37,18 +37,29 @@ function groupReactions(reactions: PoxpurMessage['reactions']): ReactionGroup[] 
 
 // ─── Media renderers ──────────────────────────────────────────────────────────
 
-function MediaContent({ message }: { message: PoxpurMessage }) {
+function MediaContent({
+  message,
+  isVendedor,
+}: {
+  message: PoxpurMessage;
+  isVendedor: boolean;
+}) {
   const { tipo, anexo_url, media_filename, conteudo } = message;
 
   if (!anexo_url) return null;
 
   if (tipo === 'imagem') {
     return (
-      <div className="mb-1">
+      <div
+        className={cn(
+          '-mx-3 -mt-2 mb-1 overflow-hidden',
+          isVendedor ? 'rounded-tl-2xl rounded-tr-sm' : 'rounded-tl-sm rounded-tr-2xl',
+        )}
+      >
         <img
           src={anexo_url}
           alt={media_filename ?? 'imagem'}
-          className="rounded-lg max-w-xs cursor-pointer object-cover"
+          className="block w-full max-h-80 cursor-pointer object-cover"
           onClick={() => window.open(anexo_url, '_blank')}
         />
       </div>
@@ -272,7 +283,7 @@ export function MessageBubble({
             ) : (
               <>
                 {/* Media content */}
-                {hasMedia && <MediaContent message={message} />}
+                {hasMedia && <MediaContent message={message} isVendedor={isVendedor} />}
 
                 {/* Text content — skip if media-only with no meaningful caption */}
                 {(!hasMedia ||
