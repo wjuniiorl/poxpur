@@ -16,7 +16,9 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // 'prompt' delega o update ao <PWAUpdatePrompt /> (toast com botão Recarregar).
+      // 'autoUpdate' fazia reload automático e brigava com o prompt → loop.
+      registerType: 'prompt',
       injectRegister: 'auto',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
@@ -40,7 +42,16 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // CRÍTICO: limpa caches antigos a cada novo SW (evita empilhamento)
+        cleanupOutdatedCaches: true,
+        // Não tomar controle automaticamente — só após o usuário aceitar o update
+        skipWaiting: false,
+        clientsClaim: false,
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // Fallback explícito pra index.html (SPA navigation)
+        navigateFallback: 'index.html',
+        // Não fallback pra rotas de API/auth/funcs/storage do Supabase
+        navigateFallbackDenylist: [/^\/api/, /^\/functions\/v1/, /^\/rest\/v1/, /^\/storage\/v1/, /^\/auth\/v1/, /^\/realtime\/v1/],
         runtimeCaching: [
           {
             urlPattern: /\.woff2$/,
@@ -54,6 +65,16 @@ export default defineConfig({
             urlPattern: /\/rest\/v1\//,
             handler: 'NetworkFirst',
             options: { cacheName: 'supabase-rest', networkTimeoutSeconds: 5 },
+          },
+          // Index.html SEMPRE network first (evita servir HTML stale com refs a chunks antigos)
+          {
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'pages',
+              networkTimeoutSeconds: 3,
+              expiration: { maxEntries: 5 },
+            },
           },
         ],
       },
