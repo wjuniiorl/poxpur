@@ -3,8 +3,9 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 // Recebe base64 da mídia inbound (do n8n após Evolution descriptografar) e armazena
 // no bucket whatsapp-media/inbound/<phone>/<msgId>.<ext>. Retorna URL pública.
-// Auth: header Authorization Bearer <service_role> validado contra a env
-// SUPABASE_SERVICE_ROLE_KEY (auto-provisionada pelo Supabase).
+// Auth: header Authorization Bearer <service_role>. Aceita tanto o JWT legacy
+// quanto a key nova sb_secret_*. Validacao via tentativa de operacao privilegiada
+// (listBuckets), que so service_role consegue executar.
 
 function sanitize(s: string, fallback: string): string {
   const cleaned = s.replace(/[^a-zA-Z0-9._-]/g, '_');
@@ -49,20 +50,29 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const expected = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (!expected) {
-    return new Response(
-      JSON.stringify({ error: 'SUPABASE_SERVICE_ROLE_KEY ausente no edge runtime' }),
-      {
-        status: 500,
-        headers: { 'content-type': 'application/json' },
-      },
-    );
-  }
   const authHeader = req.headers.get('authorization') || req.headers.get('Authorization') || '';
   const provided = authHeader.replace(/^Bearer\s+/i, '').trim();
-  if (!provided || provided !== expected) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+  if (!provided) {
+    return new Response(JSON.stringify({ error: 'Unauthorized: missing token' }), {
+      status: 401,
+      headers: { 'content-type': 'application/json' },
+    });
+  }
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  if (!supabaseUrl) {
+    return new Response(JSON.stringify({ error: 'SUPABASE_URL ausente no edge runtime' }), {
+      status: 500,
+      headers: { 'content-type': 'application/json' },
+    });
+  }
+
+  // Tenta criar client com o token recebido e fazer operacao que exige service_role
+  // (listBuckets). Se passar, o token e service_role valido (legacy JWT ou sb_secret_*).
+  const authClient = createClient(supabaseUrl, provided);
+  const { error: authErr } = await authClient.storage.listBuckets();
+  if (authErr) {
+    return new Response(JSON.stringify({ error: 'Unauthorized: invalid service_role' }), {
       status: 401,
       headers: { 'content-type': 'application/json' },
     });
@@ -98,16 +108,7 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const supabaseUrl = Deno.env.get('SUPABASE_URL');
-  if (!supabaseUrl) {
-    return new Response(JSON.stringify({ error: 'SUPABASE_URL ausente no edge runtime' }), {
-      status: 500,
-      headers: { 'content-type': 'application/json' },
-    });
-  }
-
-  const supabase = createClient(supabaseUrl, expected);
-
+  // Para o upload em si, usa o token recebido (ja validado como service_role)
   const cleanPhone = sanitize(phone, 'unknown');
   const cleanMsgId = sanitize(
     whatsappMessageId || `gen-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -127,7 +128,7 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const { error: uploadErr } = await supabase.storage
+  const { error: uploadErr } = await authClient.storage
     .from('whatsapp-media')
     .upload(path, bytes, {
       contentType: mime || 'application/octet-stream',
@@ -141,7 +142,7 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const { data: pub } = supabase.storage.from('whatsapp-media').getPublicUrl(path);
+  const { data: pub } = authClient.storage.from('whatsapp-media').getPublicUrl(path);
 
   return new Response(
     JSON.stringify({ url: pub.publicUrl, path, mime: mime || 'application/octet-stream' }),
