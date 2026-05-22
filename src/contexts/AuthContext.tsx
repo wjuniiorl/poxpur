@@ -20,6 +20,41 @@ export type AuthContextValue = {
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
 
+// Detecta token salvo com formato incompatível com as keys atuais do Supabase
+// (ex: JWT legacy quando o projeto já migrou pra sb_secret_*/sb_publishable_*).
+// Sessão stale faz auth.getSession() travar tentando refresh contra o token novo.
+function purgeStaleAuthStorage(): boolean {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return false;
+    const keys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('sb-') && k.endsWith('-auth-token')) keys.push(k);
+    }
+    let purged = false;
+    for (const k of keys) {
+      const raw = localStorage.getItem(k);
+      if (!raw) continue;
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        localStorage.removeItem(k);
+        purged = true;
+        continue;
+      }
+      const token = (parsed as { access_token?: unknown })?.access_token;
+      if (typeof token !== 'string' || token.length < 20) {
+        localStorage.removeItem(k);
+        purged = true;
+      }
+    }
+    return purged;
+  } catch {
+    return false;
+  }
+}
+
 async function loadProfile(userId: string): Promise<PoxpurProfile | null> {
   const { data, error } = await supabase
     .from('profiles')
@@ -96,18 +131,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (err) {
         console.warn('[AuthContext] bootstrap falhou, limpando sessao:', err);
         if (!active) return;
+        // Limpa qualquer token sb-*-auth-token do localStorage (mais agressivo
+        // que signOut, que tambem chama API e pode travar de novo).
         try {
-          await supabase.auth.signOut();
+          if (typeof window !== 'undefined' && window.localStorage) {
+            const toRemove: string[] = [];
+            for (let i = 0; i < localStorage.length; i++) {
+              const k = localStorage.key(i);
+              if (k && k.startsWith('sb-')) toRemove.push(k);
+            }
+            for (const k of toRemove) localStorage.removeItem(k);
+          }
         } catch {
-          /* ignore — local cleanup best-effort */
+          /* ignore */
         }
-        if (!active) return;
         setSession(null);
         setProfile(null);
         setStatus('unauthenticated');
       }
     }
 
+    purgeStaleAuthStorage();
     void bootstrap();
 
     const { data: sub } = supabase.auth.onAuthStateChange(async (event, newSession) => {
