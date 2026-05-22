@@ -55,6 +55,8 @@ function purgeStaleAuthStorage(): boolean {
   }
 }
 
+// null = profile não existe na DB (caso legítimo "sem convite")
+// throw = erro de rede/auth/permissão (caso transitório — não destruir sessão)
 async function loadProfile(userId: string): Promise<PoxpurProfile | null> {
   const { data, error } = await supabase
     .from('profiles')
@@ -64,7 +66,7 @@ async function loadProfile(userId: string): Promise<PoxpurProfile | null> {
 
   if (error) {
     console.error('[AuthContext] erro carregando profile:', error);
-    return null;
+    throw new Error(`loadProfile error: ${error.code ?? 'unknown'} ${error.message ?? ''}`);
   }
   return data;
 }
@@ -141,15 +143,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       lastUserIdRef.current = newSession.user.id;
 
+      const sessionUserId = newSession.user.id;
+
+      // Retry com backoff curto pra absorver race window entre INITIAL_SESSION
+      // e propagação do access_token no cliente Supabase (pode causar 401 efêmero).
+      async function loadProfileWithRetry(): Promise<PoxpurProfile | null> {
+        const delays = [0, 300, 800, 1500];
+        let lastErr: unknown = null;
+        for (const delay of delays) {
+          if (delay > 0) await new Promise((r) => setTimeout(r, delay));
+          if (!active) return null;
+          try {
+            return await withTimeout(loadProfile(sessionUserId), 4000, 'loadProfile');
+          } catch (err) {
+            lastErr = err;
+          }
+        }
+        throw lastErr ?? new Error('loadProfile failed');
+      }
+
       try {
-        const p = await withTimeout(loadProfile(newSession.user.id), 5000, 'loadProfile');
+        const p = await loadProfileWithRetry();
         if (!active) return;
 
-        if (!p || !p.ativo) {
+        if (p === null) {
+          // Profile genuinamente não existe na DB — caso "sem convite".
+          // Faz signOut pra limpar a sessão e força o user pra tela de login.
           await supabase.auth.signOut();
           setProfile(null);
           setStatus('no_profile');
-          toast.error('Esta conta não tem acesso ao Sales Hub.');
+          toast.error('Esta conta não tem perfil configurado. Procure o administrador.');
+          return;
+        }
+
+        if (!p.ativo) {
+          // Perfil existe mas foi desativado pelo admin.
+          await supabase.auth.signOut();
+          setProfile(null);
+          setStatus('no_profile');
+          toast.error('Sua conta foi desativada. Procure o administrador.');
           return;
         }
 
@@ -165,12 +197,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .eq('id', p.id);
         }
       } catch (err) {
-        console.warn('[AuthContext] loadProfile falhou:', err);
+        // Erro transitório (network/auth/permission). NÃO destruir a sessão
+        // — pode ser apenas race condition temporária. Marcar como autenticado
+        // sem profile (UI mostra estado degradado) e deixar o user reload se
+        // necessário. Tentar recarregar o profile via refreshProfile() depois.
+        console.warn('[AuthContext] loadProfile falhou apos retries:', err);
         if (!active) return;
-        clearAuthStorage();
-        setSession(null);
-        setProfile(null);
-        setStatus('unauthenticated');
+        setStatus('no_profile');
+        toast.error(
+          'Erro carregando perfil. Tente recarregar a página ou faça login novamente.',
+        );
       }
     });
 
