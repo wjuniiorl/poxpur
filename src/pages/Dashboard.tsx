@@ -1,5 +1,12 @@
 import { useNavigate } from 'react-router-dom';
-import { Trophy, Package } from 'lucide-react';
+import {
+  Trophy,
+  Package,
+  MessageSquarePlus,
+  ShoppingCart,
+  Building2,
+  CheckSquare,
+} from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
@@ -213,6 +220,7 @@ function SellerRanking({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const { profile } = useAuth();
   const isAdmin = useIsAdmin();
   const firstName = profile?.nome.split(' ')[0] ?? '';
@@ -264,17 +272,48 @@ export default function Dashboard() {
         <div className="flex min-h-0 flex-col gap-4 lg:col-span-2">
           <RecentOrders orders={recentOrders} isLoading={isLoading} />
           <Card className="p-5 shadow-soft">
-            <h3 className="mb-2 text-base font-semibold text-poxpur-navy">
-              Próximos passos do produto
-            </h3>
-            <ul className="space-y-1.5 text-sm text-muted-foreground">
-              <li>
-                • Chat WhatsApp (Onda 3) — atendimento e modal "Criar Pedido" a partir da
-                conversa
-              </li>
-              <li>• Tarefas e Equipe (Onda 4) — gestão interna sem celular ou ramal</li>
-              <li>• Relatórios e Configurações (Onda 5) — analytics + onboarding wizard</li>
-            </ul>
+            <h3 className="mb-3 text-base font-semibold text-poxpur-navy">Atalhos rápidos</h3>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/chat?new=1')}
+                className="h-auto flex-col gap-1.5 py-3"
+              >
+                <MessageSquarePlus className="h-5 w-5 text-poxpur-green" />
+                <span className="text-xs">Nova conversa</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/orders?new=1')}
+                className="h-auto flex-col gap-1.5 py-3"
+              >
+                <ShoppingCart className="h-5 w-5 text-poxpur-green" />
+                <span className="text-xs">Novo pedido</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/customers?new=1')}
+                className="h-auto flex-col gap-1.5 py-3"
+              >
+                <Building2 className="h-5 w-5 text-poxpur-green" />
+                <span className="text-xs">Novo cliente</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/tasks?new=1')}
+                className="h-auto flex-col gap-1.5 py-3"
+              >
+                <CheckSquare className="h-5 w-5 text-poxpur-green" />
+                <span className="text-xs">Nova tarefa</span>
+              </Button>
+            </div>
+            <p className="mt-3 text-[11px] text-muted-foreground">
+              Dica: aperte <kbd className="rounded border bg-secondary px-1.5 py-0.5 text-[10px] font-mono">Ctrl+K</kbd> em qualquer página pra busca rápida.
+            </p>
           </Card>
         </div>
 
