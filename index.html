@@ -8,6 +8,37 @@
     <meta name="theme-color" content="#1B2C5E" />
     <meta name="description" content="Gestão da equipe de vendas Poxpur" />
     <title>Poxpur Sales Hub</title>
+    <script>
+      // Kill switch INLINE — executa antes de qualquer chunk JS carregar.
+      // Resolve o caso onde um Service Worker antigo intercepta o JS principal
+      // e serve cache stale (assim o kill switch dentro do JS nunca executava).
+      (function () {
+        try {
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function (regs) {
+              if (regs.length > 0) {
+                console.info('[inline-killswitch] unregistering', regs.length, 'SW(s)');
+                regs.forEach(function (r) {
+                  r.unregister();
+                });
+              }
+            });
+          }
+          if ('caches' in window) {
+            caches.keys().then(function (keys) {
+              if (keys.length > 0) {
+                console.info('[inline-killswitch] clearing', keys.length, 'cache(s)');
+                keys.forEach(function (k) {
+                  caches.delete(k);
+                });
+              }
+            });
+          }
+        } catch (e) {
+          console.warn('[inline-killswitch] error', e);
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
