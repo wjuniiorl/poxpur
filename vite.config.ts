@@ -86,6 +86,20 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    // Permite acessar o dev server via túneis (ngrok, cloudflared, localtunnel)
+    // sem precisar editar este arquivo cada vez que a URL muda.
+    allowedHosts: [
+      'localhost',
+      '127.0.0.1',
+      '.ngrok-free.dev',
+      '.ngrok-free.app',
+      '.ngrok.io',
+      '.ngrok.app',
+      '.trycloudflare.com',
+      '.loca.lt',
+    ],
+  },
   build: {
     rollupOptions: {
       output: {
