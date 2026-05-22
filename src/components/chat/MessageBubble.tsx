@@ -59,7 +59,7 @@ function MediaContent({
         <img
           src={anexo_url}
           alt={media_filename ?? 'imagem'}
-          className="block w-full max-h-80 cursor-pointer object-cover"
+          className="block w-full max-h-[35vh] cursor-pointer object-cover"
           onClick={() => window.open(anexo_url, '_blank')}
         />
       </div>
@@ -269,7 +269,11 @@ export function MessageBubble({
 
           <div
             className={cn(
-              'relative max-w-[70%] px-3 py-2 text-sm shadow-sm',
+              'relative w-fit px-3 py-2 text-sm shadow-sm',
+              // Bubble cresce até no máximo 320px (≈ max-w-xs) ou 75% do
+              // container do chat thread — o que for menor. Garante
+              // proporcionalidade entre texto e mídia em qualquer tela.
+              'max-w-[min(75%,20rem)]',
               isVendedor
                 ? 'bg-poxpur-green/15 text-foreground rounded-tl-2xl rounded-tr-sm rounded-bl-2xl rounded-br-2xl'
                 : 'bg-white border border-border text-foreground rounded-tl-sm rounded-tr-2xl rounded-bl-2xl rounded-br-2xl',
