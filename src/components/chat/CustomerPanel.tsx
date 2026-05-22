@@ -191,10 +191,10 @@ function WithPhoneOnly({
   const [createOpen, setCreateOpen] = useState(false);
 
   return (
-    <div className="flex flex-col items-center justify-center h-full p-4 gap-4 text-center">
-      <Avatar className="h-14 w-14">
+    <div className="flex flex-col items-center p-4 gap-4 text-center border-b border-border">
+      <Avatar className="h-14 w-14 mt-2">
         <AvatarFallback className="bg-muted text-muted-foreground text-lg">
-          {phone?.slice(-2) ?? '??'}
+          {phone ? phone.replace(/\D/g, '').slice(-2) : '??'}
         </AvatarFallback>
       </Avatar>
       <div>
