@@ -139,23 +139,31 @@ function MessageList({
   customerPhone: string;
 }) {
   const bottomRef = useRef<HTMLDivElement>(null);
-  const prevConversationRef = useRef<string>(conversationId);
-  const lastMessageCountRef = useRef(messages.length);
+  // Marca a conversa cujo scroll-pro-fim já foi disparado (instantâneo).
+  // null = ainda não scrollou nada (estado inicial).
+  const scrolledForConversationRef = useRef<string | null>(null);
+  const lastMessageCountRef = useRef(0);
 
-  // Scroll instantâneo ao abrir uma conversa diferente (sem animação),
-  // scroll suave ao receber novas mensagens na mesma conversa.
   useLayoutEffect(() => {
-    const conversationChanged = prevConversationRef.current !== conversationId;
-    const newMessageArrived = messages.length > lastMessageCountRef.current;
-    prevConversationRef.current = conversationId;
-    lastMessageCountRef.current = messages.length;
+    if (!bottomRef.current || messages.length === 0) return;
 
-    if (!bottomRef.current) return;
-    if (conversationChanged) {
+    const isFirstTimeForConversation =
+      scrolledForConversationRef.current !== conversationId;
+
+    if (isFirstTimeForConversation) {
+      // Abriu conversa nova (ou recarregou) — desce direto sem animação
       bottomRef.current.scrollIntoView({ behavior: 'auto', block: 'end' });
-    } else if (newMessageArrived) {
+      scrolledForConversationRef.current = conversationId;
+      // Repete no próximo frame pra capturar altura de imagens que
+      // ainda estavam carregando.
+      requestAnimationFrame(() => {
+        bottomRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
+      });
+    } else if (messages.length > lastMessageCountRef.current) {
+      // Nova mensagem chegou enquanto user já estava na conversa — anima
       bottomRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
+    lastMessageCountRef.current = messages.length;
   }, [conversationId, messages.length]);
 
   const elements: React.ReactNode[] = [];

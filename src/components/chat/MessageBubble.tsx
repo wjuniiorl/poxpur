@@ -37,29 +37,18 @@ function groupReactions(reactions: PoxpurMessage['reactions']): ReactionGroup[] 
 
 // ─── Media renderers ──────────────────────────────────────────────────────────
 
-function MediaContent({
-  message,
-  isVendedor,
-}: {
-  message: PoxpurMessage;
-  isVendedor: boolean;
-}) {
+function MediaContent({ message }: { message: PoxpurMessage }) {
   const { tipo, anexo_url, media_filename, conteudo } = message;
 
   if (!anexo_url) return null;
 
   if (tipo === 'imagem') {
     return (
-      <div
-        className={cn(
-          '-mx-3 -mt-2 mb-1 overflow-hidden',
-          isVendedor ? 'rounded-tl-2xl rounded-tr-sm' : 'rounded-tl-sm rounded-tr-2xl',
-        )}
-      >
+      <div className="mb-1">
         <img
           src={anexo_url}
           alt={media_filename ?? 'imagem'}
-          className="block w-full max-h-[35vh] cursor-pointer object-cover"
+          className="block w-full max-h-[35vh] cursor-pointer rounded-lg object-cover"
           onClick={() => window.open(anexo_url, '_blank')}
         />
       </div>
@@ -269,11 +258,7 @@ export function MessageBubble({
 
           <div
             className={cn(
-              'relative w-fit px-3 py-2 text-sm shadow-sm',
-              // Bubble cresce até no máximo 320px (≈ max-w-xs) ou 75% do
-              // container do chat thread — o que for menor. Garante
-              // proporcionalidade entre texto e mídia em qualquer tela.
-              'max-w-[min(75%,20rem)]',
+              'relative max-w-xs px-3 py-2 text-sm shadow-sm',
               isVendedor
                 ? 'bg-poxpur-green/15 text-foreground rounded-tl-2xl rounded-tr-sm rounded-bl-2xl rounded-br-2xl'
                 : 'bg-white border border-border text-foreground rounded-tl-sm rounded-tr-2xl rounded-bl-2xl rounded-br-2xl',
@@ -287,7 +272,7 @@ export function MessageBubble({
             ) : (
               <>
                 {/* Media content */}
-                {hasMedia && <MediaContent message={message} isVendedor={isVendedor} />}
+                {hasMedia && <MediaContent message={message} />}
 
                 {/* Text content — skip if media-only with no meaningful caption */}
                 {(!hasMedia ||
