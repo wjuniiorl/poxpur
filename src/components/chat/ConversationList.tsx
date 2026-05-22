@@ -237,9 +237,29 @@ export function ConversationList({ selectedId, onSelect }: ConversationListProps
             ))}
           </div>
         ) : !conversations || conversations.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3 p-6">
-            <MessageSquare className="h-8 w-8 opacity-30" />
-            <p className="text-xs text-center">Nenhuma conversa encontrada</p>
+          <div className="grid h-full place-items-center p-6">
+            <div className="max-w-[200px] space-y-3 text-center">
+              <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-poxpur-green/10">
+                <MessageSquare className="h-7 w-7 text-poxpur-green" />
+              </div>
+              <h3 className="text-sm font-semibold text-poxpur-navy">
+                {search ? 'Nenhum resultado' : 'Sem conversas aqui'}
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                {search
+                  ? `Nada encontrado para "${search}"`
+                  : 'Inicie uma nova conversa pelo botão +'}
+              </p>
+              {!search && (
+                <button
+                  type="button"
+                  onClick={() => setNewDialogOpen(true)}
+                  className="text-xs text-poxpur-green hover:underline font-medium"
+                >
+                  Nova conversa
+                </button>
+              )}
+            </div>
           </div>
         ) : (
           conversations.map((conv) => (

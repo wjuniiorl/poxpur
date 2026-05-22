@@ -94,9 +94,12 @@ export function NotificationBell() {
               ))}
             </div>
           ) : displayedNotifications.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10 text-center">
-              <Bell className="mb-3 h-8 w-8 text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground">Nenhuma notificação por enquanto</p>
+            <div className="flex flex-col items-center justify-center py-10 text-center px-4">
+              <div className="mb-3 grid h-12 w-12 place-items-center rounded-full bg-poxpur-green/10">
+                <Bell className="h-6 w-6 text-poxpur-green" />
+              </div>
+              <p className="text-sm font-medium text-foreground">Tudo em dia!</p>
+              <p className="mt-1 text-xs text-muted-foreground">Nenhuma notificação no momento.</p>
             </div>
           ) : (
             <div className="p-1">
