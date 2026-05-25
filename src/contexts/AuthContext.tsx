@@ -94,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true;
+    let listenerFired = false;
 
     function clearAuthStorage() {
       try {
@@ -124,6 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // getSession() separadamente — isso causava race conditions.
     const { data: sub } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       if (!active) return;
+      listenerFired = true;
 
       setSession(newSession);
 
@@ -145,16 +147,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const sessionUserId = newSession.user.id;
 
-      // Retry com backoff curto pra absorver race window entre INITIAL_SESSION
-      // e propagação do access_token no cliente Supabase (pode causar 401 efêmero).
+      // 2 tentativas no máx (0 e 500ms) — total ≤6s, dentro do safety de 12s.
       async function loadProfileWithRetry(): Promise<PoxpurProfile | null> {
-        const delays = [0, 300, 800, 1500];
+        const delays = [0, 500];
         let lastErr: unknown = null;
         for (const delay of delays) {
           if (delay > 0) await new Promise((r) => setTimeout(r, delay));
           if (!active) return null;
           try {
-            return await withTimeout(loadProfile(sessionUserId), 4000, 'loadProfile');
+            return await withTimeout(loadProfile(sessionUserId), 2500, 'loadProfile');
           } catch (err) {
             lastErr = err;
           }
@@ -210,19 +211,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    // Safety net: se o listener nunca disparar (cliente Supabase travado),
-    // após 8s força status='unauthenticated' pra liberar a UI.
+    // Safety net: se o listener NUNCA disparou em 10s, o cliente Supabase
+    // está travado em estado terminal — limpa localStorage e força login.
+    // Se o listener já disparou (mesmo que loadProfile ainda esteja em
+    // retry), NÃO interfere — deixa o fluxo natural completar.
     const safetyTimeout = setTimeout(() => {
       if (!active) return;
-      setStatus((current) => {
-        if (current !== 'loading') return current;
-        console.warn('[AuthContext] listener nao disparou em 8s — limpando localStorage');
-        clearAuthStorage();
-        setSession(null);
-        setProfile(null);
-        return 'unauthenticated';
-      });
-    }, 8000);
+      if (listenerFired) return;
+      console.warn('[AuthContext] listener nao disparou em 10s — limpando localStorage');
+      clearAuthStorage();
+      setSession(null);
+      setProfile(null);
+      setStatus('unauthenticated');
+    }, 10000);
 
     return () => {
       active = false;

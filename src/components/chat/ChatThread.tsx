@@ -139,29 +139,43 @@ function MessageList({
   customerPhone: string;
 }) {
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   // Marca a conversa cujo scroll-pro-fim já foi disparado (instantâneo).
   // null = ainda não scrollou nada (estado inicial).
   const scrolledForConversationRef = useRef<string | null>(null);
   const lastMessageCountRef = useRef(0);
 
   useLayoutEffect(() => {
-    if (!bottomRef.current || messages.length === 0) return;
+    if (messages.length === 0) return;
+
+    const scrollToBottom = (behavior: ScrollBehavior = 'auto') => {
+      const c = scrollContainerRef.current;
+      if (c) {
+        c.scrollTo({ top: c.scrollHeight, behavior });
+      } else {
+        bottomRef.current?.scrollIntoView({ behavior, block: 'end' });
+      }
+    };
 
     const isFirstTimeForConversation =
       scrolledForConversationRef.current !== conversationId;
 
     if (isFirstTimeForConversation) {
-      // Abriu conversa nova (ou recarregou) — desce direto sem animação
-      bottomRef.current.scrollIntoView({ behavior: 'auto', block: 'end' });
       scrolledForConversationRef.current = conversationId;
-      // Repete no próximo frame pra capturar altura de imagens que
-      // ainda estavam carregando.
-      requestAnimationFrame(() => {
-        bottomRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
-      });
-    } else if (messages.length > lastMessageCountRef.current) {
-      // Nova mensagem chegou enquanto user já estava na conversa — anima
-      bottomRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      // Dispara várias vezes pra capturar:
+      // - render inicial (síncrono)
+      // - imagens que terminam de carregar e expandem o container
+      scrollToBottom('auto');
+      requestAnimationFrame(() => scrollToBottom('auto'));
+      const timeouts = [50, 200, 500, 1200, 2500].map((ms) =>
+        setTimeout(() => scrollToBottom('auto'), ms),
+      );
+      lastMessageCountRef.current = messages.length;
+      return () => timeouts.forEach(clearTimeout);
+    }
+
+    if (messages.length > lastMessageCountRef.current) {
+      scrollToBottom('smooth');
     }
     lastMessageCountRef.current = messages.length;
   }, [conversationId, messages.length]);
@@ -197,7 +211,7 @@ function MessageList({
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-3">
+    <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 py-3">
       {elements}
       <div ref={bottomRef} />
     </div>
